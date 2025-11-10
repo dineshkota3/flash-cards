@@ -1,38 +1,262 @@
-.App {
-  text-align: center;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.flashcards-container {
+  width: 100%;
+  max-width: 500px;
+  perspective: 1000px;
+}
+
+.flashcard {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  padding: 40px 30px;
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+}
+
+.flashcard:hover {
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+.card-content {
+  min-height: 200px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  margin-bottom: 30px;
+}
+
+.card-content h2 {
+  font-size: 2.5rem;
+  color: #2d3748;
+  font-weight: 700;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.flashcard button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  border: none;
+  padding: 15px 25px;
+  margin: 10px;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.App-link {
-  color: #61dafb;
+.flashcard button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
-@keyframes App-logo-spin {
+.flashcard button:active {
+  transform: translateY(0);
+}
+
+.flashcard button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.flashcard button:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 15px rgba(237, 137, 54, 0.4);
+}
+
+@keyframes slideIn {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(30px);
   }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* Stats Section */
+.stats {
+  text-align: center;
+  margin-bottom: 20px;
+  color: white;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.stats p {
+  margin: 5px 0;
+  font-weight: 500;
+}
+
+/* Card Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.language-tag {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Button Container */
+.button-container {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.toggle-btn {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+}
+
+.toggle-btn:hover {
+  box-shadow: 0 6px 20px rgba(72, 187, 120, 0.6);
+}
+
+.next-btn {
+  background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+  box-shadow: 0 4px 15px rgba(237, 137, 54, 0.4);
+}
+
+.next-btn:hover {
+  box-shadow: 0 6px 20px rgba(237, 137, 54, 0.6);
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  margin-top: 30px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(72, 187, 120, 0.5);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .flashcard {
+    padding: 30px 20px;
+    margin: 10px;
+  }
+
+  .card-content h2 {
+    font-size: 2rem;
+  }
+
+  .stats {
+    font-size: 0.85rem;
+  }
+
+  .button-container {
+    gap: 10px;
+  }
+
+  .flashcard button {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    margin: 5px;
+  }
+
+  .language-tag {
+    font-size: 0.75rem;
+    padding: 5px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-content {
+    min-height: 150px;
+  }
+
+  .card-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .stats {
+    font-size: 0.8rem;
+    margin-bottom: 15px;
+  }
+
+  .flashcard {
+    padding: 25px 15px;
+  }
+
+  .button-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .flashcard button {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    margin: 3px;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .language-tag {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+  }
+
+  .card-header {
+    margin-bottom: 15px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  }
+
+  .flashcard {
+    background: #2d3748;
+    color: #e2e8f0;
+  }
+
+  .card-content h2 {
+    color: #e2e8f0;
   }
 }

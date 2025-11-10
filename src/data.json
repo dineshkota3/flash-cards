@@ -1,5 +1,23 @@
 {
     "appel" : "apple",
     "hoe gaat het" : "how are you",
-    "doei" : "bye"
+    "doei" : "bye",
+    "goedemorgen" : "good morning",
+    "alsjeblieft" : "please",
+    "dank je wel" : "thank you",
+    "water" : "water",
+    "brood" : "bread",
+    "huis" : "house",
+    "boek" : "book",
+    "auto" : "car",
+    "fiets" : "bicycle",
+    "hond" : "dog",
+    "kat" : "cat",
+    "rood" : "red",
+    "blauw" : "blue",
+    "groot" : "big",
+    "klein" : "small",
+    "vandaag" : "today",
+    "morgen" : "tomorrow",
+    "weer" : "weather"
 }
