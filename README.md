@@ -1,70 +1,131 @@
-# Getting Started with Create React App
+# Flash Cards
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A simple and interactive flash cards application built with React for learning Dutch words. This application helps you practice Dutch vocabulary by showing random word pairs with the ability to toggle between questions and answers.
 
-## Available Scripts
+## 🚀 Live Demo
 
-In the project directory, you can run:
+Check out the live application here: [https://dineshkota3.github.io/flash-cards](https://dineshkota3.github.io/flash-cards)
 
-### `npm start`
+## ✨ Features
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Interactive Flash Cards**: Toggle between Dutch words and their English translations
+- **Randomized Learning**: Cards are displayed in random order to enhance memorization
+- **Clean Interface**: Simple and user-friendly design
+- **Responsive**: Works on desktop and mobile devices
+- **Instant Feedback**: Quickly flip between question and answer
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🛠️ Built With
 
-### `npm test`
+- **React 18** - Modern React with hooks
+- **CSS3** - Styling with flexbox and modern CSS
+- **JavaScript ES6+** - Modern JavaScript features
+- **GitHub Pages** - Free hosting
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 📚 How to Use
 
-### `npm run build`
+1. **View the Question**: Each card displays a Dutch word or phrase
+2. **Show Answer**: Click the "Show Answer" button to reveal the English translation
+3. **Next Card**: Click "Next Card" to randomly select a new flash card
+4. **Toggle Back**: Click "Show Question" to hide the answer and see the Dutch word again
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🏗️ Project Structure
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+flash-cards/
+├── src/
+│   ├── App.js          # Main application component
+│   ├── App.css         # Application styles
+│   ├── data.json       # Dutch-English word pairs
+│   └── index.js        # Application entry point
+├── public/             # Static assets
+└── README.md           # This file
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🚀 Getting Started
 
-### `npm run eject`
+### Prerequisites
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Node.js (version 14 or higher)
+- npm or yarn
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Installation
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+1. Clone the repository:
+```bash
+git clone https://github.com/dineshkota3/flash-cards.git
+cd flash-cards
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+2. Install dependencies:
+```bash
+npm install
+```
 
-## Learn More
+### Development
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Run the application in development mode:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```bash
+npm start
+```
 
-### Code Splitting
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser. The page will reload when you make changes.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Building for Production
 
-### Analyzing the Bundle Size
+Create an optimized production build:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+npm run build
+```
 
 ### Deployment
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+This project is configured to deploy to GitHub Pages:
 
-### `npm run build` fails to minify
+```bash
+npm run deploy
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 📝 Adding New Words
+
+To add new Dutch-English word pairs:
+
+1. Open `src/data.json`
+2. Add new entries in the format: `"dutch_phrase": "english_translation"`
+3. Save the file and the changes will be reflected immediately
+
+Example:
+```json
+{
+    "appel": "apple",
+    "hoe gaat het": "how are you",
+    "doei": "bye",
+    "goedenavond": "good evening"
+}
+```
+
+## 🔧 Available Scripts
+
+- `npm start` - Run development server
+- `npm test` - Launch test runner
+- `npm run build` - Build for production
+- `npm run deploy` - Deploy to GitHub Pages
+- `npm run eject` - Eject from Create React App (one-way operation)
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🤝 Contributing
+
+Contributions are welcome! If you'd like to add more features or word pairs, feel free to:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📞 Contact
+
+If you have any questions or suggestions, please feel free to reach out.
