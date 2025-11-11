@@ -9,7 +9,7 @@ function App() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [isChangingCard, setIsChangingCard] = useState(false);
   const [cardsStudied, setCardsStudied] = useState(0);
-
+  
   const currentData = currentLanguage === 'dutch' ? dutchData : koreanData;
   const words = Object.keys(currentData);
 
@@ -36,25 +36,74 @@ function App() {
     setShowAnswer(false);
   };
 
+  const handlePronunciation = () => {
+    if (
+      typeof window !== 'undefined' &&
+      window.speechSynthesis &&
+      currentLanguage === 'korean' &&
+      currentForeignWord
+    ) {
+      try {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(currentForeignWord);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.8; // Slightly slower for better learning
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        // Find Korean voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const koreanVoice = voices.find(voice => voice.lang.includes('ko') || voice.lang.includes('Korean'));
+        if (koreanVoice) {
+          utterance.voice = koreanVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+      } catch (error) {
+        // Silently fail in test environment or if speech synthesis is not available
+        console.warn('Speech synthesis not available:', error);
+      }
+    }
+  };
+
   function randomIntFromInterval(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // Initialize with a random card on mount
-    if (words.length > 0 && !currentForeignWord) {
-      const rndInt = randomIntFromInterval(0, words.length - 1);
-      setCurrentForeignWord(words[rndInt]);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Initialize with a random card when language changes
+    // Initialize with a random card on mount and when language changes
     if (words.length > 0) {
       const rndInt = randomIntFromInterval(0, words.length - 1);
       setCurrentForeignWord(words[rndInt]);
     }
   }, [currentLanguage]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Load voices when they become available
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        try {
+          window.speechSynthesis.getVoices();
+        } catch (error) {
+          // Silently fail in test environment
+        }
+      };
+
+      // Load voices immediately and also when voices change
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+
+      return () => {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.onvoiceschanged = null;
+        }
+      };
+    }
+  }, []);
 
   return (
     <div className="flashcards-container">
@@ -81,9 +130,21 @@ function App() {
           <span className="language-tag">{showAnswer ? 'English' : currentLanguage.charAt(0).toUpperCase() + currentLanguage.slice(1)}</span>
         </div>
         <div className="card-content">
-          <h2>
-            {showAnswer ? currentData[currentForeignWord] : currentForeignWord}
-          </h2>
+          <div className="word-display">
+            <h2>
+              {showAnswer ? currentData[currentForeignWord] : currentForeignWord}
+            </h2>
+            {!showAnswer && currentLanguage === 'korean' && (
+              <button
+                onClick={handlePronunciation}
+                className="pronunciation-btn"
+                title="Hear pronunciation"
+                aria-label="Hear Korean pronunciation"
+              >
+                🔊
+              </button>
+            )}
+          </div>
         </div>
         <div className="button-container">
           <button onClick={handleToggleAnswer} className="toggle-btn">

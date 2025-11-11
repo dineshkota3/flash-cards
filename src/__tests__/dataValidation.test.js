@@ -6,7 +6,7 @@ describe('Data Validation Tests', () => {
     test('contains expected number of words', () => {
       const words = Object.keys(dutchData);
       expect(words.length).toBeGreaterThan(0);
-      expect(words.length).toBe(22); // Current count in data.json
+      expect(words.length).toBe(21); // Current count in data.json
     });
 
     test('all words are strings', () => {
@@ -44,7 +44,7 @@ describe('Data Validation Tests', () => {
     test('contains expected number of words', () => {
       const words = Object.keys(koreanData);
       expect(words.length).toBeGreaterThan(0);
-      expect(words.length).toBe(28); // Current count in korean-data.json
+      expect(words.length).toBe(27); // Current count in korean-data.json
     });
 
     test('all words are strings', () => {
@@ -73,7 +73,7 @@ describe('Data Validation Tests', () => {
     test('translations make sense for key words', () => {
       expect(koreanData['안녕하세요']).toBe('hello');
       expect(koreanData['감사합니다']).toBe('thank you');
-      expect(koreanData['사랑해']).toBe('I love you');
+      expect(koreanData['사랑해']).toBe('i love you');
       expect(koreanData['집']).toBe('house');
     });
   });

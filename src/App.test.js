@@ -71,21 +71,22 @@ describe('Flashcard App', () => {
 
     test('language tag updates when toggling answer', () => {
       const showAnswerButton = screen.getByText('Show Answer');
-      const languageTag = screen.getByText('Dutch');
+      const languageTag = document.querySelector('.language-tag');
 
-      expect(languageTag).toBeInTheDocument();
+      expect(languageTag).toHaveTextContent('Dutch');
 
       // Click to show answer
       fireEvent.click(showAnswerButton);
 
       // Should now show English tag
       expect(screen.getByText('English')).toBeInTheDocument();
+      expect(languageTag).toHaveTextContent('English');
 
       // Click to go back
       fireEvent.click(screen.getByText('Show Question'));
 
       // Should show Dutch tag again
-      expect(screen.getByText('Dutch')).toBeInTheDocument();
+      expect(languageTag).toHaveTextContent('Dutch');
     });
   });
 
@@ -101,11 +102,15 @@ describe('Flashcard App', () => {
       // Switch to Korean
       fireEvent.click(koreanTab);
 
+      // Wait for language change to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Korean tab should be active
       expect(koreanTab).toHaveClass('active');
 
       // Language tag should update
-      expect(screen.getByText('Korean')).toBeInTheDocument();
+      const languageTag = document.querySelector('.language-tag');
+      expect(languageTag).toHaveTextContent('Korean');
 
       // Card should show Korean word
       const koreanWord = cardContent.textContent;
@@ -196,7 +201,7 @@ describe('Flashcard App', () => {
       expect(screen.getByText('Show Answer')).toBeInTheDocument();
     });
 
-    test('button is disabled during card change animation', () => {
+    test('button is disabled during card change animation', async () => {
       const nextCardButton = screen.getByText('Next Card →');
 
       fireEvent.click(nextCardButton);
@@ -205,9 +210,8 @@ describe('Flashcard App', () => {
       expect(nextCardButton).toBeDisabled();
 
       // Should be re-enabled after animation
-      setTimeout(() => {
-        expect(nextCardButton).not.toBeDisabled();
-      }, 350);
+      await new Promise(resolve => setTimeout(resolve, 350));
+      expect(nextCardButton).not.toBeDisabled();
     });
   });
 
@@ -244,8 +248,9 @@ describe('Flashcard App', () => {
 
   describe('Progress Bar', () => {
     test('progress bar updates as cards are studied', async () => {
+      render(<App />);
       const progressBar = document.querySelector('.progress-fill');
-      const nextCardButton = screen.getByText('Next Card →');
+      const nextCardButton = document.querySelector('.next-btn');
 
       const dutchWords = Object.keys(dutchData);
 
