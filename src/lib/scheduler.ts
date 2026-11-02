@@ -56,42 +56,44 @@ export function nextProgress(
 
 export type Card = { word: Word; stat: WordStat | null }
 
-/**
- * Sampling weight for a card in the current-direction session.
- * - Unseen words: fixed attractive weight (they must enter rotation).
- * - Due words: weaker = heavier; repeated failures add extra weight.
- * - Not-due (mastering) words: tiny weight so learned words still pop up occasionally.
- */
-export function cardWeight(card: Card, now: number): number {
-  const s = card.stat
-  if (!s) return 6
-  if (new Date(s.due_at).getTime() <= now) {
-    return 10 / (1 + s.box) + Math.min(s.wrong_count, 5)
+/** Session mix: ~40% weakest/due, ~40% new words, ~20% mastered brush-up. */
+function bucketSlots(size: number): { due: number; unseen: number; mastered: number } {
+  const due = Math.round(size * 0.4)
+  const unseen = Math.round(size * 0.4)
+  return { due, unseen, mastered: Math.max(0, size - due - unseen) }
+}
+
+/** Weighted sampling without replacement. Exported for tests. */
+export function weightedSample<T>(items: T[], weights: number[], count: number): T[] {
+  const pool = items.map((item, i) => ({ item, weight: weights[i] }))
+  const picked: T[] = []
+  while (picked.length < count && pool.length > 0) {
+    const total = pool.reduce((sum, p) => sum + p.weight, 0)
+    let r = Math.random() * total
+    let idx = pool.length - 1
+    for (let i = 0; i < pool.length; i++) {
+      r -= pool[i].weight
+      if (r <= 0) {
+        idx = i
+        break
+      }
+    }
+    picked.push(pool[idx].item)
+    pool.splice(idx, 1)
   }
-  return 0.3 / (1 + s.box)
+  return picked
 }
 
 /**
- * The persistent review pile: words that need dedicated drilling.
- * A word belongs if it is at the bottom of the ladder, has more wrongs than
- * rights, or its most recent attempt failed.
- */
-export function isInReviewPile(s: WordStat | null | undefined): boolean {
-  if (!s) return false
-  const seen = s.last_seen_at !== null
-  return (s.box === 0 && seen) || s.wrong_count > s.correct_count || s.last_result === false
-}
-
-export interface SessionOptions {
-  size?: number
-  pool?: 'all' | 'review'
-  now?: number
-}
-
-/**
- * Build one session's queue: weighted sampling WITHOUT replacement over the
- * candidate pool, then shuffled. `pool: 'review'` restricts candidates to the
- * persistent review pile (drill mode).
+ * Build one session's queue. Candidates are stratified into three buckets so
+ * struggling words always get a guaranteed share of the session even when the
+ * unseen pool is huge:
+ * - `due` (~40%): due_at <= now — weighted by wrong count (show-answers count
+ *   as wrongs), so the most-mistaken words resurface the most and can climb
+ *   out of the lower boxes.
+ * - `unseen` (~40%): never-seen words enter rotation.
+ * - `mastered` (~20%): not-due words, occasional brush-up.
+ * Empty buckets donate their slots to the others (due first, then unseen).
  */
 export function buildSessionQueue(
   words: Word[],
@@ -111,25 +113,56 @@ export function buildSessionQueue(
     candidates = candidates.filter((c) => isInReviewPile(c.stat))
   }
 
-  const picked: Card[] = []
-  const remaining = [...candidates]
-  while (picked.length < size && remaining.length > 0) {
-    const weights = remaining.map((c) => cardWeight(c, now))
-    const total = weights.reduce((a, b) => a + b, 0)
-    let r = Math.random() * total
-    let idx = remaining.length - 1
-    for (let i = 0; i < remaining.length; i++) {
-      r -= weights[i]
-      if (r <= 0) {
-        idx = i
-        break
-      }
-    }
-    picked.push(remaining[idx])
-    remaining.splice(idx, 1)
+  const unseen: Card[] = []
+  const due: Card[] = []
+  const mastered: Card[] = []
+  for (const card of candidates) {
+    const s = card.stat
+    if (!s) unseen.push(card)
+    else if (new Date(s.due_at).getTime() <= now) due.push(card)
+    else mastered.push(card)
   }
 
+  const slots = bucketSlots(size)
+  let dueTake = Math.min(slots.due, due.length)
+  let unseenTake = Math.min(slots.unseen, unseen.length)
+  let masteredTake = Math.min(slots.mastered, mastered.length)
+  // Empty buckets donate their slots: due first, then unseen, then mastered.
+  let leftover = size - dueTake - unseenTake - masteredTake
+  const extraDue = Math.min(leftover, due.length - dueTake)
+  leftover -= extraDue
+  dueTake += extraDue
+  const extraUnseen = Math.min(leftover, unseen.length - unseenTake)
+  leftover -= extraUnseen
+  unseenTake += extraUnseen
+  masteredTake += Math.min(leftover, mastered.length - masteredTake)
+
+  const picked: Card[] = []
+  const takeFrom = (cards: Card[], weightOf: (c: Card) => number, count: number) => {
+    picked.push(...weightedSample(cards, cards.map(weightOf), count))
+  }
+  takeFrom(due, (c) => 1 + c.stat!.wrong_count, dueTake)
+  takeFrom(unseen, () => 1, unseenTake)
+  takeFrom(mastered, (c) => 1 / (1 + (c.stat?.box ?? 0)), masteredTake)
+
   return shuffle(picked)
+}
+
+/**
+ * The persistent review pile: words that need dedicated drilling.
+ * A word belongs if it is at the bottom of the ladder, has more wrongs than
+ * rights, or its most recent attempt failed.
+ */
+export function isInReviewPile(s: WordStat | null | undefined): boolean {
+  if (!s) return false
+  const seen = s.last_seen_at !== null
+  return (s.box === 0 && seen) || s.wrong_count > s.correct_count || s.last_result === false
+}
+
+export interface SessionOptions {
+  size?: number
+  pool?: 'all' | 'review'
+  now?: number
 }
 
 export function shuffle<T>(items: T[]): T[] {

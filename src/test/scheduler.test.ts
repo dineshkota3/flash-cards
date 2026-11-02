@@ -4,9 +4,9 @@ import {
   MAX_BOX,
   promotionCorrectsNeeded,
   nextProgress,
-  cardWeight,
   isInReviewPile,
   buildSessionQueue,
+  weightedSample,
 } from '../lib/scheduler'
 import { statsKey, type Word, type WordStat } from '../lib/types'
 
@@ -94,36 +94,6 @@ describe('nextProgress', () => {
   })
 })
 
-describe('cardWeight', () => {
-  const now = Date.now()
-
-  it('gives unseen words a fixed attractive weight', () => {
-    expect(cardWeight({ word: makeWord(1), stat: null }, now)).toBe(6)
-  })
-
-  it('gives due words more weight the weaker they are', () => {
-    const due = (box: number): WordStat => stat({ box, due_at: new Date(now - 1000).toISOString() })
-    expect(cardWeight({ word: makeWord(1), stat: due(0) }, now)).toBeGreaterThan(
-      cardWeight({ word: makeWord(2), stat: due(3) }, now),
-    )
-  })
-
-  it('boosts due words with many wrong answers', () => {
-    const base = stat({ box: 0, due_at: new Date(now - 1000).toISOString(), wrong_count: 0 })
-    const failing = stat({ box: 0, due_at: new Date(now - 1000).toISOString(), wrong_count: 4 })
-    expect(cardWeight({ word: makeWord(1), stat: failing }, now)).toBeGreaterThan(
-      cardWeight({ word: makeWord(2), stat: base }, now),
-    )
-  })
-
-  it('keeps not-due (mastered) words rare', () => {
-    const mastered = stat({ box: 5, due_at: new Date(now + 86_400_000).toISOString() })
-    const unseen = cardWeight({ word: makeWord(1), stat: null }, now)
-    const brushUp = cardWeight({ word: makeWord(2), stat: mastered }, now)
-    expect(brushUp).toBeLessThan(unseen / 10)
-  })
-})
-
 describe('isInReviewPile', () => {
   it('excludes never-seen words', () => {
     expect(isInReviewPile(null)).toBe(false)
@@ -197,5 +167,69 @@ describe('buildSessionQueue', () => {
     const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, pool: 'review', now })
     expect(queue).toHaveLength(10)
     expect(queue.every((c) => c.word.id <= 10)).toBe(true)
+  })
+
+  it('reserves guaranteed session slots: ~40% due, ~40% unseen, ~20% mastered', () => {
+    const stats = new Map<string, WordStat>()
+    const now = Date.now()
+    // 20 due (box 0) + 20 unseen + 20 mastered (box 5, not due) — ids by bucket
+    for (let i = 1; i <= 20; i++) {
+      stats.set(statsKey(i, 'en_nl'), stat({ box: 0, last_seen_at: new Date(now).toISOString(), due_at: new Date(now - 1000).toISOString() }))
+    }
+    for (let i = 41; i <= 60; i++) {
+      stats.set(statsKey(i, 'en_nl'), stat({ box: 5, last_seen_at: new Date(now).toISOString(), due_at: new Date(now + 86_400_000).toISOString() }))
+    }
+    const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, now })
+    const bucketOf = (id: number) => (id <= 20 ? 'due' : id <= 40 ? 'unseen' : 'mastered')
+    const counts = { due: 0, unseen: 0, mastered: 0 }
+    queue.forEach((c) => (counts[bucketOf(c.word.id)] += 1))
+    expect(counts.due).toBe(6)
+    expect(counts.unseen).toBe(6)
+    expect(counts.mastered).toBe(3)
+  })
+
+  it('donates empty-bucket slots: with no due words, unseen + mastered fill the session', () => {
+    const stats = new Map<string, WordStat>()
+    const now = Date.now()
+    // 5 mastered (not due) + 50 unseen; no due words at all
+    for (let i = 1; i <= 5; i++) {
+      stats.set(statsKey(i, 'en_nl'), stat({ box: 5, due_at: new Date(now + 86_400_000).toISOString() }))
+    }
+    const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, now })
+    expect(queue).toHaveLength(15)
+    const masteredIds = queue.filter((c) => c.word.id <= 5)
+    expect(masteredIds).toHaveLength(3) // mastered brush-up share only
+    expect(queue.every((c) => c.word.id > 5 || c.word.id <= 5)).toBe(true) // no due words exist
+  })
+
+  it('within the due bucket, the most-mistaken words win', () => {
+    const items = words.slice(0, 10).map((w) => w.id)
+    const weights = items.map((id) => (id === 1 ? 9 : 1)) // word 1 has 8 wrongs
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.49) // lands in word 1's heavy slice
+    const picked = weightedSample(items, weights, 3)
+    spy.mockRestore()
+    expect(picked[0]).toBe(1)
+  })
+})
+
+describe('weightedSample', () => {
+  it('samples without replacement', () => {
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const picked = weightedSample([10, 20, 30, 40], [1, 1, 1, 1], 3)
+    spy.mockRestore()
+    expect(new Set(picked).size).toBe(3)
+  })
+
+  it('heavier weights are picked first', () => {
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.49)
+    const picked = weightedSample(['light', 'HEAVY'], [1, 5], 1)
+    spy.mockRestore()
+    expect(picked).toEqual(['HEAVY'])
+  })
+
+  it('returns at most count items, even with fewer candidates', () => {
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    expect(weightedSample([1, 2], [1, 1], 5)).toHaveLength(2)
+    spy.mockRestore()
   })
 })
