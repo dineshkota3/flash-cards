@@ -27,6 +27,8 @@ npm run import-vocab # re-parse the vocab markdown → data/seed-words-*.sql (ne
 
 Copy `.env.example` to `.env` and fill in the InsForge URL and anon key (backend connection values, see `.insforge/project.json`).
 
+**Note:** in production the app proxies `/api/*` through its own origin (see `vercel.json`) so the auth refresh cookie is first-party — sessions survive reloads. Local `npm run dev` has no proxy, so point `VITE_INSFORGE_URL` at the deployment origin for read-only UI work; full auth flows are best tested against the deployed app.
+
 ## Deployment
 
 Hosted via InsForge deployments (`npx -y @insforge/cli deployments deploy .`). `vercel.json` provides SPA routing. Environment variables `VITE_INSFORGE_URL` / `VITE_INSFORGE_ANON_KEY` are set as persistent deployment env vars.

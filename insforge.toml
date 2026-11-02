@@ -3,7 +3,7 @@ allowed_redirect_urls = []
 require_email_verification = false
 verify_email_method = "code"
 reset_password_method = "code"
-disable_signup = false
+disable_signup = true
 
 [auth.password]
 min_length = 8
