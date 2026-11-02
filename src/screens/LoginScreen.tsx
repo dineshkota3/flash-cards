@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { insforge } from '../lib/insforge'
@@ -6,9 +6,9 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { Spinner } from '../components/Spinner'
 
 /**
- * Login screen. Sign-in is the primary flow; the sign-up toggle exists only
- * during setup (signup gets disabled on the backend once both owner accounts
- * exist — after that, sign-up attempts fail with a backend error).
+ * Login screen. Sign-in is the primary flow; the sign-up toggle appears only
+ * while the backend allows signup (mirrored in the public app_config table —
+ * the backend rejects signups regardless once disable_signup is set).
  */
 export function LoginScreen() {
   const { user, reloadUser } = useApp()
@@ -20,6 +20,24 @@ export function LoginScreen() {
   const [notice, setNotice] = useState<string | null>(null)
   const [otp, setOtp] = useState('')
   const [awaitingVerification, setAwaitingVerification] = useState(false)
+  const [signupEnabled, setSignupEnabled] = useState(false)
+
+  // Hidden by default (safe state while the flag loads); the toggle shows only
+  // when the project explicitly allows signup.
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const { data } = await insforge.database
+        .from('app_config')
+        .select('value')
+        .eq('key', 'signup_enabled')
+        .maybeSingle()
+      if (!cancelled && data?.value === 'true') setSignupEnabled(true)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -135,7 +153,7 @@ export function LoginScreen() {
         </PrimaryButton>
       </form>
 
-      {!awaitingVerification && (
+      {!awaitingVerification && signupEnabled && (
         <button
           type="button"
           onClick={() => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { LoginScreen } from '../screens/LoginScreen'
@@ -9,11 +9,21 @@ vi.mock('../context/AppContext', () => ({
   useApp: vi.fn(),
 }))
 
-// LoginScreen renders the insforge client form only when signed out; with a
-// session it must leave /login immediately (regression: successful sign-in
-// used to leave the user stuck on the login form).
+// Chainable query-builder mock for insforge.database.from('app_config')
+const dbState = vi.hoisted(() => ({ signupValue: null as string | null }))
 vi.mock('../lib/insforge', () => ({
-  insforge: {},
+  insforge: {
+    database: {
+      from: () => {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          maybeSingle: () => Promise.resolve({ data: dbState.signupValue === null ? null : { value: dbState.signupValue } }),
+        }
+        return chain
+      },
+    },
+  },
 }))
 
 const mockedUseApp = vi.mocked(useApp)
@@ -29,16 +39,32 @@ function renderLogin() {
   )
 }
 
+beforeEach(() => {
+  dbState.signupValue = 'false'
+  mockedUseApp.mockReturnValue({
+    user: null,
+    loading: false,
+    reloadUser: vi.fn(),
+  } as unknown as AppContextValue)
+})
+
 describe('LoginScreen', () => {
   it('renders the sign-in form when signed out', () => {
-    mockedUseApp.mockReturnValue({
-      user: null,
-      loading: false,
-      reloadUser: vi.fn(),
-    } as unknown as AppContextValue)
     renderLogin()
     expect(screen.getByPlaceholderText('Email')).toBeInTheDocument()
     expect(screen.getByText('Sign in')).toBeInTheDocument()
+  })
+
+  it('hides the sign-up option when signup is disabled', async () => {
+    renderLogin()
+    await screen.findByText('Sign in')
+    expect(screen.queryByText('First time? Create an account')).not.toBeInTheDocument()
+  })
+
+  it('shows the sign-up option only when signup is enabled', async () => {
+    dbState.signupValue = 'true'
+    renderLogin()
+    expect(await screen.findByText('First time? Create an account')).toBeInTheDocument()
   })
 
   it('redirects to home as soon as a session exists', () => {
