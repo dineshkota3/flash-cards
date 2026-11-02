@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { insforge } from '../lib/insforge'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -10,7 +11,7 @@ import { Spinner } from '../components/Spinner'
  * exist — after that, sign-up attempts fail with a backend error).
  */
 export function LoginScreen() {
-  const { reloadUser } = useApp()
+  const { user, reloadUser } = useApp()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -61,6 +62,10 @@ export function LoginScreen() {
       setBusy(false)
     }
   }
+
+  // After a successful sign-in/up the auth state changes while this route is
+  // still mounted — leave for the app as soon as a session exists.
+  if (user) return <Navigate to="/" replace />
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[26rem] flex-col justify-center px-8">
