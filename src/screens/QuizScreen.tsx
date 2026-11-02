@@ -171,20 +171,35 @@ export function QuizScreen() {
       setPhase('correct')
       window.setTimeout(() => advance(), 800)
     } else {
-      if (isFirstView) setAskedFirstTry((n) => n + 1)
-      setMistakes((prev) =>
-        prev.some((m) => m.word.id === card.word.id) ? prev : [...prev, card],
-      )
-      // Re-insert a copy of the card a few positions later (mistake pile).
-      setQueue((prev) => {
-        const next = [...prev]
-        const at = Math.min(index + REQUEUE_OFFSET, next.length)
-        next.splice(at, 0, card)
-        return next
-      })
-      setTyped('')
-      setPhase('wrong')
+      failCard(card, isFirstView)
     }
+  }
+
+  /** Shared wrong-path: mistake pile membership + in-session re-queue. */
+  function failCard(failed: Card, isFirstView: boolean) {
+    if (isFirstView) setAskedFirstTry((n) => n + 1)
+    setMistakes((prev) =>
+      prev.some((m) => m.word.id === failed.word.id) ? prev : [...prev, failed],
+    )
+    // Re-insert a copy of the card a few positions later (mistake pile).
+    setQueue((prev) => {
+      const next = [...prev]
+      const at = Math.min(index + REQUEUE_OFFSET, next.length)
+      next.splice(at, 0, failed)
+      return next
+    })
+    setTyped('')
+    setPhase('wrong')
+  }
+
+  /** Reveal the answer without typing: counts as a miss, straight to box 0. */
+  function handleShowAnswer() {
+    if (!card || !direction || phase !== 'asking') return
+    recordAnswer(card.word.id, direction, false, '')
+    setCanonical(direction === 'nl_en' ? card.word.english : card.word.dutch)
+    const isFirstView = !seenWordsRef.current.has(card.word.id)
+    if (isFirstView) seenWordsRef.current.add(card.word.id)
+    failCard(card, isFirstView)
   }
 
   function advance() {
@@ -261,6 +276,11 @@ export function QuizScreen() {
         {phase !== 'correct' && (
           <PrimaryButton type="submit" variant={phase === 'wrong' ? 'blue' : 'blue'}>
             {phase === 'wrong' ? 'Continue' : 'Check'}
+          </PrimaryButton>
+        )}
+        {phase === 'asking' && (
+          <PrimaryButton type="button" variant="gray" onClick={handleShowAnswer}>
+            Show answer
           </PrimaryButton>
         )}
       </form>
