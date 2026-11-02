@@ -22,6 +22,13 @@ export function nextBox(correct: boolean, box: number): number {
   return correct ? Math.min(box + 1, MAX_BOX) : Math.max(box - 2, 0)
 }
 
+const BOX_LABELS = ['due now', '10 min', '1 hour', '6 hours', '1 day', '3 days', '7 days'] as const
+
+/** Human label for the review interval of a box level. */
+export function boxIntervalLabel(box: number): string {
+  return BOX_LABELS[box] ?? ''
+}
+
 export type Card = { word: Word; stat: WordStat | null }
 
 /**

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
@@ -7,6 +8,7 @@ import { statsKey, type Direction } from '../lib/types'
 
 function DirectionStats({ title, direction }: { title: string; direction: Direction }) {
   const { words, stats } = useApp()
+  const navigate = useNavigate()
 
   const s = useMemo(() => {
     const now = Date.now()
@@ -58,17 +60,26 @@ function DirectionStats({ title, direction }: { title: string; direction: Direct
       </div>
       <div className="mt-4 flex items-end gap-1.5" aria-label="Words per box level">
         {s.boxes.map((count, box) => (
-          <div key={box} className="flex flex-1 flex-col items-center gap-1">
+          <button
+            key={box}
+            type="button"
+            disabled={count === 0}
+            onClick={() => navigate(`/stats/${direction}/${box}`)}
+            aria-label={`Box ${box}: ${count} words — view words`}
+            className="pressable flex flex-1 flex-col items-center gap-1 disabled:opacity-40"
+          >
             <div
               className={`w-full rounded-t-md ${box === 0 ? 'bg-iosred/70' : box === MAX_BOX ? 'bg-iosgreen/80' : 'bg-iosblue/70'}`}
               style={{ height: `${Math.max(3, (count / maxBox) * 64)}px` }}
               title={`Box ${box}: ${count}`}
             />
             <span className="text-[11px] text-iosgray">{box}</span>
-          </div>
+          </button>
         ))}
       </div>
-      <p className="mt-1 text-center text-[12px] text-iosgray">box level (0 = review pile)</p>
+      <p className="mt-1 text-center text-[12px] text-iosgray">
+        box level (0 = review pile) — tap a bar to see its words
+      </p>
     </section>
   )
 }

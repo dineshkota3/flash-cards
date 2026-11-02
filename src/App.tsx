@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthGate } from './components/AuthGate'
+import { BoxWordsScreen } from './screens/BoxWordsScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { LoginScreen } from './screens/LoginScreen'
 import { QuizScreen } from './screens/QuizScreen'
@@ -39,6 +40,14 @@ export default function App() {
         element={
           <AuthGate>
             <StatsScreen />
+          </AuthGate>
+        }
+      />
+      <Route
+        path="/stats/:direction/:box"
+        element={
+          <AuthGate>
+            <BoxWordsScreen />
           </AuthGate>
         }
       />
