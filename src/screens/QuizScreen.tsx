@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { PrimaryButton } from '../components/PrimaryButton'
+import { SpeakButton } from '../components/SpeakButton'
 import { Spinner } from '../components/Spinner'
 import { buildSessionQueue, type Card } from '../lib/scheduler'
 import { checkAnswer } from '../lib/answerCheck'
@@ -202,9 +203,12 @@ export function QuizScreen() {
           <button onClick={() => navigate('/')} className="text-[15px] text-iosblue">
             ✕
           </button>
-          <span className="text-[13px] font-medium text-iosgray">
-            {index + 1} / {queue.length}
-          </span>
+          <div className="flex items-center gap-2.5">
+            {card && <SpeakButton text={card.word.dutch} />}
+            <span className="text-[13px] font-medium text-iosgray">
+              {index + 1} / {queue.length}
+            </span>
+          </div>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-iosgray/20">
           <div

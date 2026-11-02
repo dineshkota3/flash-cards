@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App'
 import { AppProvider } from './context/AppContext'
+import { installViewportHeightSync } from './lib/viewport'
+
+installViewportHeightSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

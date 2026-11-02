@@ -3,9 +3,18 @@
 @tailwind utilities;
 
 html,
-body,
-#root {
+body {
   height: 100%;
+  overflow: hidden; /* the app never body-scrolls; containers scroll instead */
+}
+
+/* Root tracks the visual viewport: shrinks when the iOS keyboard opens so the
+   prompt stays on screen, and counter-shifts by the viewport offset. */
+#root {
+  position: fixed;
+  inset: 0;
+  height: var(--app-height, 100%);
+  transform: translateY(calc(-1 * var(--vv-offset, 0px)));
 }
 
 body {
