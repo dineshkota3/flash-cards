@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-iosbg font-sans text-[17px] leading-snug text-black antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Safe-area helpers for notch + home indicator */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0.5rem);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+/* iOS-style press feedback */
+.pressable {
+  @apply transition-transform duration-100 active:scale-[0.97];
+}
+
+/* Answer input: never smaller than 16px (prevents iOS focus zoom) */
+.answer-input {
+  font-size: 17px;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pop-in {
+  animation: pop-in 180ms ease-out;
+}

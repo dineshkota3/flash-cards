@@ -1,0 +1,26 @@
+node_modules/
+dist/
+coverage/
+.env
+.env*.local
+data/
+.insforge/
+.agents/
+.vercel
+.DS_Store
+*.local
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf
