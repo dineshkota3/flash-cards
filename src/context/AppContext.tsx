@@ -11,7 +11,7 @@ import {
 import type { Direction, StatsKey, Word, WordStat } from '../lib/types'
 import { statsKey } from '../lib/types'
 import { insforge } from '../lib/insforge'
-import { nextBox, BOX_INTERVALS_MS } from '../lib/scheduler'
+import { nextProgress, BOX_INTERVALS_MS } from '../lib/scheduler'
 import {
   clearPendingAttempts,
   loadPendingAttempts,
@@ -46,7 +46,7 @@ function optimisticStat(
   direction: Direction,
   isCorrect: boolean,
 ): WordStat {
-  const box = nextBox(isCorrect, prev?.box ?? 0)
+  const { box, streak } = nextProgress(isCorrect, prev?.box ?? 0, prev?.streak ?? 0)
   const due = new Date(Date.now() + BOX_INTERVALS_MS[box])
   return {
     word_id: wordId,
@@ -54,7 +54,7 @@ function optimisticStat(
     box,
     correct_count: (prev?.correct_count ?? 0) + (isCorrect ? 1 : 0),
     wrong_count: (prev?.wrong_count ?? 0) + (isCorrect ? 0 : 1),
-    streak: isCorrect ? (prev?.streak ?? 0) + 1 : 0,
+    streak,
     last_result: isCorrect,
     last_seen_at: new Date().toISOString(),
     due_at: due.toISOString(),

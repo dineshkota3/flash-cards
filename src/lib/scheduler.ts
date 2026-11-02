@@ -18,15 +18,40 @@ export const BOX_INTERVALS_MS = [
 
 export const MAX_BOX = BOX_INTERVALS_MS.length - 1
 
-export function nextBox(correct: boolean, box: number): number {
-  return correct ? Math.min(box + 1, MAX_BOX) : Math.max(box - 2, 0)
-}
-
 const BOX_LABELS = ['due now', '10 min', '1 hour', '6 hours', '1 day', '3 days', '7 days'] as const
 
 /** Human label for the review interval of a box level. */
 export function boxIntervalLabel(box: number): string {
   return BOX_LABELS[box] ?? ''
+}
+
+/**
+ * Consecutive correct answers needed at the current box before promotion:
+ * 3 to leave box 0 (the review pile), 2 for box 1→2 and box 2→3, then 1
+ * per box from 3 upward. The counter resets when the word enters a box
+ * (including on promotion) and on any mistake.
+ */
+export function promotionCorrectsNeeded(box: number): number {
+  if (box === 0) return 3
+  if (box <= 2) return 2
+  return 1
+}
+
+/**
+ * Progression for one answer: correct answers accumulate in the current box
+ * until the promotion threshold is met (then box +1, counter reset); wrong
+ * answers drop two boxes (floor 0) and reset the counter.
+ */
+export function nextProgress(
+  correct: boolean,
+  box: number,
+  streak: number,
+): { box: number; streak: number } {
+  if (!correct) return { box: Math.max(box - 2, 0), streak: 0 }
+  if (streak + 1 >= promotionCorrectsNeeded(box)) {
+    return { box: Math.min(box + 1, MAX_BOX), streak: 0 }
+  }
+  return { box, streak: streak + 1 }
 }
 
 export type Card = { word: Word; stat: WordStat | null }

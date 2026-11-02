@@ -2,7 +2,8 @@ import { afterEach, describe, it, expect, vi } from 'vitest'
 import {
   BOX_INTERVALS_MS,
   MAX_BOX,
-  nextBox,
+  promotionCorrectsNeeded,
+  nextProgress,
   cardWeight,
   isInReviewPile,
   buildSessionQueue,
@@ -41,21 +42,55 @@ describe('BOX_INTERVALS_MS', () => {
   })
 })
 
-describe('nextBox', () => {
-  it('climbs one box per correct answer', () => {
-    expect(nextBox(true, 0)).toBe(1)
-    expect(nextBox(true, 3)).toBe(4)
+describe('promotionCorrectsNeeded', () => {
+  it('requires 3 corrects at box 0, 2 at boxes 1-2, 1 from box 3 up', () => {
+    expect(promotionCorrectsNeeded(0)).toBe(3)
+    expect(promotionCorrectsNeeded(1)).toBe(2)
+    expect(promotionCorrectsNeeded(2)).toBe(2)
+    expect(promotionCorrectsNeeded(3)).toBe(1)
+    expect(promotionCorrectsNeeded(6)).toBe(1)
+  })
+})
+
+describe('nextProgress', () => {
+  it('keeps a box-0 word in box 0 for the first two corrects', () => {
+    expect(nextProgress(true, 0, 0)).toEqual({ box: 0, streak: 1 })
+    expect(nextProgress(true, 0, 1)).toEqual({ box: 0, streak: 2 })
+  })
+
+  it('promotes box 0 → 1 on the third consecutive correct and resets the counter', () => {
+    expect(nextProgress(true, 0, 2)).toEqual({ box: 1, streak: 0 })
+  })
+
+  it('promotes box 1 → 2 and box 2 → 3 on the second consecutive correct', () => {
+    expect(nextProgress(true, 1, 0)).toEqual({ box: 1, streak: 1 })
+    expect(nextProgress(true, 1, 1)).toEqual({ box: 2, streak: 0 })
+    expect(nextProgress(true, 2, 0)).toEqual({ box: 2, streak: 1 })
+    expect(nextProgress(true, 2, 1)).toEqual({ box: 3, streak: 0 })
+  })
+
+  it('promotes boxes 3+ on every correct', () => {
+    expect(nextProgress(true, 3, 0)).toEqual({ box: 4, streak: 0 })
+    expect(nextProgress(true, 4, 0)).toEqual({ box: 5, streak: 0 })
+    expect(nextProgress(true, 5, 0)).toEqual({ box: 6, streak: 0 })
   })
 
   it('caps at MAX_BOX', () => {
-    expect(nextBox(true, MAX_BOX)).toBe(MAX_BOX)
-    expect(nextBox(true, MAX_BOX + 5)).toBe(MAX_BOX)
+    expect(nextProgress(true, 6, 0)).toEqual({ box: MAX_BOX, streak: 0 })
+    expect(nextProgress(true, MAX_BOX + 5, 0)).toEqual({ box: MAX_BOX, streak: 0 })
   })
 
-  it('drops two boxes on a wrong answer, floored at 0', () => {
-    expect(nextBox(false, 6)).toBe(4)
-    expect(nextBox(false, 1)).toBe(0)
-    expect(nextBox(false, 0)).toBe(0)
+  it('drops two boxes on a wrong answer, floored at 0, and resets the counter', () => {
+    expect(nextProgress(false, 6, 3)).toEqual({ box: 4, streak: 0 })
+    expect(nextProgress(false, 2, 1)).toEqual({ box: 0, streak: 0 })
+    expect(nextProgress(false, 1, 0)).toEqual({ box: 0, streak: 0 })
+  })
+
+  it('a mid-box mistake restarts the promotion count from zero', () => {
+    // two corrects at box 0, then a mistake → back to start
+    const after2 = nextProgress(true, 0, 1)
+    expect(after2).toEqual({ box: 0, streak: 2 })
+    expect(nextProgress(false, after2.box, after2.streak)).toEqual({ box: 0, streak: 0 })
   })
 })
 
