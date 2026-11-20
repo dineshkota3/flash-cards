@@ -6,6 +6,8 @@ import {
   nextProgress,
   isInReviewPile,
   buildSessionQueue,
+  dueWeight,
+  DUE_WRONG_WEIGHT_CAP,
   weightedSample,
 } from '../lib/scheduler'
 import { statsKey, type Word, type WordStat } from '../lib/types'
@@ -209,6 +211,17 @@ describe('buildSessionQueue', () => {
     const picked = weightedSample(items, weights, 3)
     spy.mockRestore()
     expect(picked[0]).toBe(1)
+  })
+})
+
+describe('dueWeight', () => {
+  it('rises with the wrong count up to the cap, then stops', () => {
+    expect(dueWeight(stat({ wrong_count: 0 }))).toBe(1)
+    expect(dueWeight(stat({ wrong_count: 1 }))).toBe(2)
+    expect(dueWeight(stat({ wrong_count: DUE_WRONG_WEIGHT_CAP }))).toBe(DUE_WRONG_WEIGHT_CAP + 1)
+    // A runaway word (e.g. 9 wrongs on an unanswerable card) must not out-weigh
+    // one that just hit the cap.
+    expect(dueWeight(stat({ wrong_count: 9 }))).toBe(DUE_WRONG_WEIGHT_CAP + 1)
   })
 })
 

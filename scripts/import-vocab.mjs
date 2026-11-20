@@ -62,7 +62,7 @@ const ARTICLE_TAIL_RE = /^(.+),\s*(de|het|een)$/
 /**
  * Turn one (english, dutch) cell pair into 1..N word entries.
  */
-function expandCellPair(englishCell, dutchCell, category) {
+export function expandCellPair(englishCell, dutchCell, category) {
   const english = englishCell.replace(/\*\*/g, '').trim()
   const dutch = dutchCell.replace(/\*\*/g, '').trim()
 
@@ -93,9 +93,12 @@ function expandCellPair(englishCell, dutchCell, category) {
     entry.english = enParts[0]
     entry.english_alts.push(...enParts.slice(1))
   } else if (enParts.length > 1 && nlParts.length > 1) {
-    // Defensive: unequal multi-part cells — keep whole cells, accept all parts.
-    entry.english_alts.push(...enParts.filter((p) => p !== entry.english))
-    entry.dutch_alts.push(...nlParts.filter((p) => p !== entry.dutch))
+    // Unequal multi-part cells: pair positionally — first part is canonical,
+    // the rest are alternatives (same rule as the single-side cases above).
+    entry.english = enParts[0]
+    entry.dutch = nlParts[0]
+    entry.english_alts.push(...enParts.slice(1))
+    entry.dutch_alts.push(...nlParts.slice(1))
   }
 
   // Parenthetical variants: "(somebody)" optional parts.
@@ -120,6 +123,7 @@ export function parseVocabMd(markdown) {
   const lines = markdown.split('\n')
   const words = []
   const dropped = []
+  const invalid = []
   const skippedSections = []
   const perCategory = {}
   let currentCategory = null
@@ -143,6 +147,11 @@ export function parseVocabMd(markdown) {
     if (!rowMatch) continue
 
     for (const entry of expandCellPair(rowMatch[1], rowMatch[2], currentCategory)) {
+      // Blank table rows (e.g. "| 202 |  |  |") produce unanswerable cards.
+      if (entry.english === '' || entry.dutch === '') {
+        invalid.push(entry)
+        continue
+      }
       const key = dedupeKey(entry)
       if (words.some((w) => w._key === key)) {
         dropped.push(entry)
@@ -157,6 +166,7 @@ export function parseVocabMd(markdown) {
   return {
     words: words.map(({ _key, ...rest }) => rest),
     dropped,
+    invalid,
     skippedSections,
     perCategory,
   }
@@ -191,7 +201,9 @@ if (isMain) {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..')
   const vocabPath = process.env.VOCAB_MD ?? join(root, '..', 'dutch', 'a2-reading-vocabulaire-all-words.md')
   const markdown = readFileSync(vocabPath, 'utf8')
-  const { words, dropped, skippedSections, perCategory } = parseVocabMd(markdown)
+  const { words, dropped, invalid, skippedSections } = parseVocabMd(markdown)
+  const perCategory = {}
+  for (const w of words) perCategory[w.category] = (perCategory[w.category] ?? 0) + 1
 
   mkdirSync(join(root, 'data'), { recursive: true })
   writeFileSync(join(root, 'data', 'words.json'), JSON.stringify(words, null, 2))
@@ -206,6 +218,7 @@ if (isMain) {
 
   console.log(`Parsed ${words.length} unique words from ${vocabPath}`)
   console.log('Per category:', perCategory)
+  console.log(`Dropped ${invalid.length} blank rows:`, invalid.map((d) => `${d.english} | ${d.dutch}`))
   console.log(`Dropped ${dropped.length} duplicates:`, dropped.map((d) => `${d.english} | ${d.dutch}`))
   console.log('Skipped sections:', skippedSections)
   console.log('Seed files:', batches)

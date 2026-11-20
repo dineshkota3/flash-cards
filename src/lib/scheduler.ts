@@ -85,12 +85,25 @@ export function weightedSample<T>(items: T[], weights: number[], count: number):
 }
 
 /**
+ * Cap on the wrong-count bonus in the due bucket's sampling weight. Without it
+ * a hard (or unanswerable) word accrues wrongs every time it resurfaces and
+ * its weight grows without bound, crowding the rest of the due pile out of the
+ * session. The cap keeps strugglers at the front while bounding the skew.
+ */
+export const DUE_WRONG_WEIGHT_CAP = 3
+
+/** Sampling weight of a due card: 1 + capped wrong count. Exported for tests. */
+export function dueWeight(s: WordStat): number {
+  return 1 + Math.min(s.wrong_count, DUE_WRONG_WEIGHT_CAP)
+}
+
+/**
  * Build one session's queue. Candidates are stratified into three buckets so
  * struggling words always get a guaranteed share of the session even when the
  * unseen pool is huge:
- * - `due` (~40%): due_at <= now — weighted by wrong count (show-answers count
- *   as wrongs), so the most-mistaken words resurface the most and can climb
- *   out of the lower boxes.
+ * - `due` (~40%): due_at <= now — weighted by capped wrong count (show-answers
+ *   count as wrongs), so the most-mistaken words resurface the most and can
+ *   climb out of the lower boxes.
  * - `unseen` (~40%): never-seen words enter rotation.
  * - `mastered` (~20%): not-due words, occasional brush-up.
  * Empty buckets donate their slots to the others (due first, then unseen).
@@ -141,7 +154,7 @@ export function buildSessionQueue(
   const takeFrom = (cards: Card[], weightOf: (c: Card) => number, count: number) => {
     picked.push(...weightedSample(cards, cards.map(weightOf), count))
   }
-  takeFrom(due, (c) => 1 + c.stat!.wrong_count, dueTake)
+  takeFrom(due, (c) => dueWeight(c.stat!), dueTake)
   takeFrom(unseen, () => 1, unseenTake)
   takeFrom(mastered, (c) => 1 / (1 + (c.stat?.box ?? 0)), masteredTake)
 

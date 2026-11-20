@@ -11,6 +11,7 @@ const FIXTURE = `# Dutch A2 – Reading Vocabulaire: all vocabulary
 | 2 | tree | boom, de |
 | 3 | very | zeer, heel |
 | 4 | very | heel |
+| 5 |  |  |
 
 ## COMMON WORDS – Medium (2 words)
 
@@ -121,5 +122,10 @@ describe('parseVocabMd', () => {
       adjective: 4,
       preposition: 1,
     })
+  })
+
+  it('drops blank table rows so no unanswerable card is emitted', () => {
+    expect(result.invalid).toHaveLength(1)
+    expect(result.words.every((w) => w.english !== '' && w.dutch !== '')).toBe(true)
   })
 })

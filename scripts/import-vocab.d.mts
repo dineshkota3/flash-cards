@@ -9,8 +9,15 @@ export interface ParsedWord {
 export interface ParseResult {
   words: ParsedWord[]
   dropped: ParsedWord[]
+  invalid: ParsedWord[]
   skippedSections: string[]
   perCategory: Record<string, number>
 }
 
 export function parseVocabMd(markdown: string): ParseResult
+
+export function expandCellPair(
+  englishCell: string,
+  dutchCell: string,
+  category: string,
+): ParsedWord[]
