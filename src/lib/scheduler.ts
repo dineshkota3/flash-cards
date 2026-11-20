@@ -56,6 +56,15 @@ export function nextProgress(
 
 export type Card = { word: Word; stat: WordStat | null }
 
+/**
+ * A word shown this recently sits out the next session, so back-to-back
+ * sessions don't re-serve the same cards (due-at for box 0 is immediate, and
+ * the brush-up pool can be tiny, which otherwise repeats visibly).
+ */
+export const SEEN_COOLDOWN_MS = 60 * 60 * 1000
+/** Review-pile drills are deliberate, so their spacing is shorter. */
+export const REVIEW_SEEN_COOLDOWN_MS = 10 * 60 * 1000
+
 /** Session mix: ~40% weakest/due, ~40% new words, ~20% mastered brush-up. */
 function bucketSlots(size: number): { due: number; unseen: number; mastered: number } {
   const due = Math.round(size * 0.4)
@@ -106,7 +115,9 @@ export function dueWeight(s: WordStat): number {
  *   climb out of the lower boxes.
  * - `unseen` (~40%): never-seen words enter rotation.
  * - `mastered` (~20%): not-due words, occasional brush-up.
- * Empty buckets donate their slots to the others (due first, then unseen).
+ * Words seen within the seen-cooldown (1h normal sessions, 10 min review
+ * drills) sit out regardless of bucket. Empty buckets donate their slots to
+ * the others (due first, then unseen).
  */
 export function buildSessionQueue(
   words: Word[],
@@ -129,9 +140,11 @@ export function buildSessionQueue(
   const unseen: Card[] = []
   const due: Card[] = []
   const mastered: Card[] = []
+  const cooldown = pool === 'review' ? REVIEW_SEEN_COOLDOWN_MS : SEEN_COOLDOWN_MS
   for (const card of candidates) {
     const s = card.stat
     if (!s) unseen.push(card)
+    else if (now - new Date(s.last_seen_at ?? 0).getTime() < cooldown) continue // just seen — sits out
     else if (new Date(s.due_at).getTime() <= now) due.push(card)
     else mastered.push(card)
   }

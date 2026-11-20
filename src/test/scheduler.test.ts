@@ -8,6 +8,7 @@ import {
   buildSessionQueue,
   dueWeight,
   DUE_WRONG_WEIGHT_CAP,
+  SEEN_COOLDOWN_MS,
   weightedSample,
 } from '../lib/scheduler'
 import { statsKey, type Word, type WordStat } from '../lib/types'
@@ -163,8 +164,9 @@ describe('buildSessionQueue', () => {
   it('restricts to the review pile in review mode', () => {
     const stats = new Map<string, WordStat>()
     const now = Date.now()
+    const seenAwhileAgo = new Date(now - 2 * SEEN_COOLDOWN_MS).toISOString()
     for (let i = 1; i <= 10; i++) {
-      stats.set(statsKey(i, 'en_nl'), stat({ box: 0, last_seen_at: new Date(now).toISOString() }))
+      stats.set(statsKey(i, 'en_nl'), stat({ box: 0, last_seen_at: seenAwhileAgo }))
     }
     const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, pool: 'review', now })
     expect(queue).toHaveLength(10)
@@ -174,12 +176,13 @@ describe('buildSessionQueue', () => {
   it('reserves guaranteed session slots: ~40% due, ~40% unseen, ~20% mastered', () => {
     const stats = new Map<string, WordStat>()
     const now = Date.now()
+    const seenAwhileAgo = new Date(now - 2 * SEEN_COOLDOWN_MS).toISOString()
     // 20 due (box 0) + 20 unseen + 20 mastered (box 5, not due) — ids by bucket
     for (let i = 1; i <= 20; i++) {
-      stats.set(statsKey(i, 'en_nl'), stat({ box: 0, last_seen_at: new Date(now).toISOString(), due_at: new Date(now - 1000).toISOString() }))
+      stats.set(statsKey(i, 'en_nl'), stat({ box: 0, last_seen_at: seenAwhileAgo, due_at: new Date(now - 1000).toISOString() }))
     }
     for (let i = 41; i <= 60; i++) {
-      stats.set(statsKey(i, 'en_nl'), stat({ box: 5, last_seen_at: new Date(now).toISOString(), due_at: new Date(now + 86_400_000).toISOString() }))
+      stats.set(statsKey(i, 'en_nl'), stat({ box: 5, last_seen_at: seenAwhileAgo, due_at: new Date(now + 86_400_000).toISOString() }))
     }
     const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, now })
     const bucketOf = (id: number) => (id <= 20 ? 'due' : id <= 40 ? 'unseen' : 'mastered')
@@ -202,6 +205,36 @@ describe('buildSessionQueue', () => {
     const masteredIds = queue.filter((c) => c.word.id <= 5)
     expect(masteredIds).toHaveLength(3) // mastered brush-up share only
     expect(queue.every((c) => c.word.id > 5 || c.word.id <= 5)).toBe(true) // no due words exist
+  })
+
+  it('a word seen within the cooldown sits out, from due and brush-up pools alike', () => {
+    const stats = new Map<string, WordStat>()
+    const now = Date.now()
+    const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString()
+    // word 1: due, seen 5 min ago (sits out). word 2: due, seen 2h ago (in).
+    stats.set(statsKey(1, 'en_nl'), stat({ box: 0, wrong_count: 9, last_seen_at: minutesAgo(5), due_at: minutesAgo(1) }))
+    stats.set(statsKey(2, 'en_nl'), stat({ box: 0, last_seen_at: minutesAgo(120), due_at: minutesAgo(1) }))
+    // word 3: mastered brush-up, seen 5 min ago (sits out). word 4: seen 2h ago (in).
+    stats.set(statsKey(3, 'en_nl'), stat({ box: 6, last_seen_at: minutesAgo(5), due_at: new Date(now + 86_400_000).toISOString() }))
+    stats.set(statsKey(4, 'en_nl'), stat({ box: 6, last_seen_at: minutesAgo(120), due_at: new Date(now + 86_400_000).toISOString() }))
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.999) // deterministic: heaviest weights first
+    const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, now })
+    spy.mockRestore()
+    const ids = queue.map((c) => c.word.id)
+    expect(ids).toContain(2)
+    expect(ids).toContain(4)
+    expect(ids).not.toContain(1) // just-seen struggler rests despite max weight
+    expect(ids).not.toContain(3) // just-seen mastered word skips brush-up
+  })
+
+  it('review mode uses the shorter drill cooldown', () => {
+    const stats = new Map<string, WordStat>()
+    const now = Date.now()
+    const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString()
+    // word 1 seen 30 min ago: outside the 10-min drill cooldown but inside the 1h session one
+    stats.set(statsKey(1, 'en_nl'), stat({ box: 0, last_seen_at: minutesAgo(30) }))
+    const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, pool: 'review', now })
+    expect(queue.map((c) => c.word.id)).toContain(1)
   })
 
   it('within the due bucket, the most-mistaken words win', () => {
