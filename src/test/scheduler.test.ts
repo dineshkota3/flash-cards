@@ -211,12 +211,12 @@ describe('buildSessionQueue', () => {
     const stats = new Map<string, WordStat>()
     const now = Date.now()
     const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString()
-    // word 1: due, seen 5 min ago (sits out). word 2: due, seen 2h ago (in).
+    // word 1: due, seen 5 min ago (sits out). word 2: due, seen 3 days ago (in).
     stats.set(statsKey(1, 'en_nl'), stat({ box: 0, wrong_count: 9, last_seen_at: minutesAgo(5), due_at: minutesAgo(1) }))
-    stats.set(statsKey(2, 'en_nl'), stat({ box: 0, last_seen_at: minutesAgo(120), due_at: minutesAgo(1) }))
-    // word 3: mastered brush-up, seen 5 min ago (sits out). word 4: seen 2h ago (in).
+    stats.set(statsKey(2, 'en_nl'), stat({ box: 0, last_seen_at: minutesAgo(3 * 24 * 60), due_at: minutesAgo(1) }))
+    // word 3: mastered brush-up, seen 5 min ago (sits out). word 4: seen 3 days ago (in).
     stats.set(statsKey(3, 'en_nl'), stat({ box: 6, last_seen_at: minutesAgo(5), due_at: new Date(now + 86_400_000).toISOString() }))
-    stats.set(statsKey(4, 'en_nl'), stat({ box: 6, last_seen_at: minutesAgo(120), due_at: new Date(now + 86_400_000).toISOString() }))
+    stats.set(statsKey(4, 'en_nl'), stat({ box: 6, last_seen_at: minutesAgo(3 * 24 * 60), due_at: new Date(now + 86_400_000).toISOString() }))
     const spy = vi.spyOn(Math, 'random').mockReturnValue(0.999) // deterministic: heaviest weights first
     const queue = buildSessionQueue(words, stats, 'en_nl', { size: 15, now })
     spy.mockRestore()
