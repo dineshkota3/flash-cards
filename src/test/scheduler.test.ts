@@ -14,7 +14,7 @@ import {
 import { statsKey, type Word, type WordStat } from '../lib/types'
 
 function makeWord(id: number): Word {
-  return { id, english: `en${id}`, dutch: `nl${id}`, category: 'easy', english_alts: [], dutch_alts: [] }
+  return { id, english: `en${id}`, dutch: `nl${id}`, category: 'easy', english_alts: [], dutch_alts: [], dutch_past_forms: [], dutch_participle_forms: [] }
 }
 
 function stat(partial: Partial<WordStat>): WordStat {

@@ -5,7 +5,8 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { SpeakButton } from '../components/SpeakButton'
 import { Spinner } from '../components/Spinner'
 import { buildSessionQueue, type Card } from '../lib/scheduler'
-import { checkAnswer } from '../lib/answerCheck'
+import { canonicalAnswer, checkAnswer } from '../lib/answerCheck'
+import { chipFor, DIRECTION_TITLES, hintFor, promptFor, speakText, wordsForDirection } from '../lib/directions'
 import type { Direction } from '../lib/types'
 
 const SESSION_SIZE = 15
@@ -41,15 +42,14 @@ export function QuizScreen() {
   useEffect(() => {
     if (startedRef.current || dataLoading || words.length === 0) return
     startedRef.current = true
-    const valid = direction === 'nl_en' || direction === 'en_nl'
-    if (!valid) return
-    setQueue(buildSessionQueue(words, stats, direction, { size: SESSION_SIZE, pool }))
+    if (!direction || !(direction in DIRECTION_TITLES)) return
+    setQueue(buildSessionQueue(wordsForDirection(words, direction), stats, direction, { size: SESSION_SIZE, pool }))
   }, [dataLoading, words, stats, direction, pool])
 
   const card = queue[index]
   const prompt = useMemo(() => {
-    if (!card) return ''
-    return direction === 'nl_en' ? card.word.dutch : card.word.english
+    if (!card || !direction || !(direction in DIRECTION_TITLES)) return ''
+    return promptFor(card.word, direction)
   }, [card, direction])
 
   // Session complete. This lives in an effect (not in advance()) so re-queue
@@ -66,7 +66,7 @@ export function QuizScreen() {
     if (phase === 'asking' || phase === 'wrong') inputRef.current?.focus()
   }, [phase, index])
 
-  if (!direction || (direction !== 'nl_en' && direction !== 'en_nl')) {
+  if (!direction || !(direction in DIRECTION_TITLES)) {
     return (
       <div className="flex h-full items-center justify-center p-8 text-center text-iosgray">
         Unknown quiz direction.
@@ -122,7 +122,7 @@ export function QuizScreen() {
         <div className="mt-8 space-y-3">
           <PrimaryButton
             onClick={() => {
-              const next = buildSessionQueue(words, stats, direction, {
+              const next = buildSessionQueue(wordsForDirection(words, direction), stats, direction, {
                 size: 10,
                 pool,
               })
@@ -196,7 +196,7 @@ export function QuizScreen() {
   function handleShowAnswer() {
     if (!card || !direction || phase !== 'asking') return
     recordAnswer(card.word.id, direction, false, '')
-    setCanonical(direction === 'nl_en' ? card.word.english : card.word.dutch)
+    setCanonical(canonicalAnswer(card.word, direction))
     const isFirstView = !seenWordsRef.current.has(card.word.id)
     if (isFirstView) seenWordsRef.current.add(card.word.id)
     failCard(card, isFirstView)
@@ -219,7 +219,7 @@ export function QuizScreen() {
             ✕
           </button>
           <div className="flex items-center gap-2.5">
-            {card && <SpeakButton text={card.word.dutch} />}
+            {card && direction && <SpeakButton text={speakText(card.word, direction)} />}
             <span className="text-[13px] font-medium text-iosgray">
               {index + 1} / {queue.length}
             </span>
@@ -235,12 +235,19 @@ export function QuizScreen() {
 
       <div className="flex flex-1 flex-col justify-center">
         <div key={card?.word.id} className="pop-in text-center">
-          <div className="mb-3 inline-block rounded-full bg-iosgray/12 px-3 py-1 text-[13px] font-medium capitalize text-iosgray">
-            {categoryLabel}
+          <div className="mb-3 flex items-center justify-center gap-1.5">
+            <div className="inline-block rounded-full bg-iosgray/12 px-3 py-1 text-[13px] font-medium capitalize text-iosgray">
+              {categoryLabel}
+            </div>
+            {direction && chipFor(direction) && (
+              <div className="inline-block rounded-full bg-nl/15 px-3 py-1 text-[13px] font-medium text-nl">
+                {chipFor(direction)}
+              </div>
+            )}
           </div>
           <div className="text-[40px] font-semibold leading-tight">{prompt}</div>
-          {direction === 'nl_en' && card && (
-            <div className="mt-2 text-[15px] text-iosgray">type the English meaning</div>
+          {direction && hintFor(direction) && (
+            <div className="mt-2 text-[15px] text-iosgray">{hintFor(direction)}</div>
           )}
         </div>
       </div>

@@ -52,8 +52,8 @@ describe('pending attempts (offline buffer)', () => {
 
 describe('words cache', () => {
   const words: Word[] = [
-    { id: 1, english: 'the', dutch: 'de', category: 'easy', english_alts: [], dutch_alts: [] },
-    { id: 2, english: 'and', dutch: 'en', category: 'easy', english_alts: [], dutch_alts: [] },
+    { id: 1, english: 'the', dutch: 'de', category: 'easy', english_alts: [], dutch_alts: [], dutch_past_forms: [], dutch_participle_forms: [] },
+    { id: 2, english: 'and', dutch: 'en', category: 'easy', english_alts: [], dutch_alts: [], dutch_past_forms: [], dutch_participle_forms: [] },
   ]
 
   it('round-trips when the signature matches', () => {

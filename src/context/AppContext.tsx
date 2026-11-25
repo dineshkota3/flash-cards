@@ -119,18 +119,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const uid = user.id
     setDataLoading(true)
     async function bootstrap() {
-      const cached = loadWordsCache('static-v1')
+      const cached = loadWordsCache('static-v2')
       if (cached) {
         setWords(cached)
       }
       if (!cached) {
         const { data, error } = await insforge.database
           .from('words')
-          .select('id, english, dutch, category, english_alts, dutch_alts')
+          .select(
+        'id, english, dutch, category, english_alts, dutch_alts, dutch_past_forms, dutch_participle_forms',
+      )
         if (!error) {
           const fetched = (data ?? []) as Word[]
           setWords(fetched)
-          saveWordsCache('static-v1', fetched)
+          saveWordsCache('static-v2', fetched)
         }
       }
       await refreshStats()

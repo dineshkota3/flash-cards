@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeAnswer, acceptedAnswers, checkAnswer } from '../lib/answerCheck'
+import { normalizeAnswer, acceptedAnswers, canonicalAnswer, checkAnswer } from '../lib/answerCheck'
 import type { Word } from '../lib/types'
 
 const word: Word = {
@@ -9,6 +9,8 @@ const word: Word = {
   category: 'medium',
   english_alts: ['of'],
   dutch_alts: ['de boom'],
+  dutch_past_forms: [],
+  dutch_participle_forms: [],
 }
 
 const accentWord: Word = {
@@ -18,6 +20,8 @@ const accentWord: Word = {
   category: 'easy',
   english_alts: [],
   dutch_alts: [],
+  dutch_past_forms: [],
+  dutch_participle_forms: [],
 }
 
 describe('normalizeAnswer', () => {
@@ -106,5 +110,48 @@ describe('checkAnswer', () => {
 
   it('tolerates punctuation noise in typed input', () => {
     expect(checkAnswer('boom!', word, 'en_nl').correct).toBe(true)
+  })
+})
+
+describe('past-tense directions', () => {
+  const verb: Word = {
+    id: 3,
+    english: 'to work',
+    dutch: 'werken',
+    category: 'easy',
+    english_alts: [],
+    dutch_alts: [],
+    dutch_past_forms: ['werkte', 'werkten'],
+    dutch_participle_forms: ['gewerkt'],
+  }
+
+  it('nl_past accepts the singular and plural imperfectum, nothing else', () => {
+    const accepted = acceptedAnswers(verb, 'nl_past')
+    expect(accepted.has('werkte')).toBe(true)
+    expect(accepted.has('werkten')).toBe(true)
+    expect(accepted.has('gewerkt')).toBe(false)
+    expect(accepted.has('werken')).toBe(false)
+    expect(checkAnswer('WERKTEN', verb, 'nl_past').correct).toBe(true)
+    expect(checkAnswer('gewerkt', verb, 'nl_past').correct).toBe(false)
+  })
+
+  it('nl_participle accepts only the participle', () => {
+    const accepted = acceptedAnswers(verb, 'nl_participle')
+    expect(accepted.has('gewerkt')).toBe(true)
+    expect(accepted.has('werkte')).toBe(false)
+    expect(checkAnswer('gewerkt', verb, 'nl_participle').correct).toBe(true)
+    expect(checkAnswer('werkte', verb, 'nl_participle').correct).toBe(false)
+  })
+
+  it('canonical feedback is the first curated form', () => {
+    expect(canonicalAnswer(verb, 'nl_past')).toBe('werkte')
+    expect(canonicalAnswer(verb, 'nl_participle')).toBe('gewerkt')
+    expect(checkAnswer('wrong', verb, 'nl_past').canonical).toBe('werkte')
+  })
+
+  it('a word without curated forms accepts nothing (defense in depth)', () => {
+    expect(checkAnswer('werkte', word, 'nl_past').correct).toBe(false)
+    expect(checkAnswer('gewerkt', word, 'nl_participle').correct).toBe(false)
+    expect(canonicalAnswer(word, 'nl_past')).toBe('')
   })
 })

@@ -13,7 +13,16 @@ vi.mock('../context/AppContext', () => ({
 const mockedUseApp = vi.mocked(useApp)
 
 function makeWord(id: number, dutch: string, english: string): Word {
-  return { id, english, dutch, category: 'easy', english_alts: [], dutch_alts: [] }
+  return {
+    id,
+    english,
+    dutch,
+    category: 'easy',
+    english_alts: [],
+    dutch_alts: [],
+    dutch_past_forms: [],
+    dutch_participle_forms: [],
+  }
 }
 
 function stat(wordId: number, direction: 'nl_en' | 'en_nl', box: number): WordStat {
@@ -85,5 +94,31 @@ describe('BoxWordsScreen', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('No words in this box yet.')).toBeInTheDocument()
+  })
+})
+
+describe('BoxWordsScreen past-mode directions', () => {
+  it('renders the past-tense title for the new direction', () => {
+    mockedUseApp.mockReturnValue({ words, stats } as unknown as AppContextValue)
+    render(
+      <MemoryRouter initialEntries={['/stats/nl_past/2']}>
+        <Routes>
+          <Route path="/stats/:direction/:box" element={<BoxWordsScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Past tense')).toBeInTheDocument()
+  })
+
+  it('renders the participle title and rejects unknown directions', () => {
+    mockedUseApp.mockReturnValue({ words, stats } as unknown as AppContextValue)
+    render(
+      <MemoryRouter initialEntries={['/stats/nl_participle/2']}>
+        <Routes>
+          <Route path="/stats/:direction/:box" element={<BoxWordsScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Past participle')).toBeInTheDocument()
   })
 })

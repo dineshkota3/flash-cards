@@ -21,6 +21,8 @@ const word: Word = {
   category: 'medium',
   english_alts: [],
   dutch_alts: ['de boom'],
+  dutch_past_forms: [],
+  dutch_participle_forms: [],
 }
 
 function renderQuiz() {
@@ -72,5 +74,61 @@ describe('QuizScreen', () => {
     await user.type(screen.getByLabelText('Your answer'), 'tree{Enter}')
     expect(recordAnswer).toHaveBeenCalledWith(42, 'nl_en', true, 'tree')
     expect(screen.getByText('Correct!')).toBeInTheDocument()
+  })
+})
+
+describe('QuizScreen past-tense modes', () => {
+  const verb: Word = {
+    ...word,
+    id: 7,
+    english: 'to work',
+    dutch: 'werken',
+    dutch_alts: [],
+    dutch_past_forms: ['werkte', 'werkten'],
+    dutch_participle_forms: ['gewerkt'],
+  }
+
+  function renderPastQuiz(direction: 'nl_past' | 'nl_participle') {
+    mockedUseApp.mockReturnValue({
+      words: [word, verb],
+      stats: new Map(),
+      dataLoading: false,
+      recordAnswer,
+    } as unknown as AppContextValue)
+    return render(
+      <MemoryRouter initialEntries={[`/quiz/${direction}`]}>
+        <Routes>
+          <Route path="/quiz/:direction" element={<QuizScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('prompts the infinitive with a past-tense chip and hint, filters to verbs', () => {
+    recordAnswer.mockClear()
+    renderPastQuiz('nl_past')
+    expect(screen.getByText('werken')).toBeInTheDocument()
+    expect(screen.getByText('past tense')).toBeInTheDocument()
+    expect(screen.getByText('type the past tense')).toBeInTheDocument()
+    // the non-verb word is never prompted in past modes
+    expect(screen.queryByText('boom')).not.toBeInTheDocument()
+  })
+
+  it('accepting the past form records the attempt under nl_past', async () => {
+    const user = userEvent.setup()
+    recordAnswer.mockClear()
+    renderPastQuiz('nl_past')
+    await user.type(screen.getByLabelText('Your answer'), 'werkte{Enter}')
+    expect(recordAnswer).toHaveBeenCalledWith(7, 'nl_past', true, 'werkte')
+  })
+
+  it('participle mode chips "participle" and shows the canonical on show-answer', async () => {
+    const user = userEvent.setup()
+    recordAnswer.mockClear()
+    renderPastQuiz('nl_participle')
+    expect(screen.getByText('participle')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Show answer' }))
+    expect(recordAnswer).toHaveBeenCalledWith(7, 'nl_participle', false, '')
+    expect(screen.getByText('gewerkt')).toBeInTheDocument()
   })
 })

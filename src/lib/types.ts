@@ -1,4 +1,4 @@
-export type Direction = 'nl_en' | 'en_nl'
+export type Direction = 'nl_en' | 'en_nl' | 'nl_past' | 'nl_participle'
 
 export type Category =
   | 'easy'
@@ -16,6 +16,10 @@ export interface Word {
   category: Category
   english_alts: string[]
   dutch_alts: string[]
+  /** Imperfectum, canonical singular first (empty for non-verbs). */
+  dutch_past_forms: string[]
+  /** Voltooid deelwoord, variants after (empty for non-verbs). */
+  dutch_participle_forms: string[]
 }
 
 export interface WordStat {

@@ -5,16 +5,15 @@ import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { isInReviewPile } from '../lib/scheduler'
+import { DIRECTION_TITLES } from '../lib/directions'
 import { statsKey, type Direction, type Word, type WordStat } from '../lib/types'
 
 function PileSection({
-  title,
   direction,
   words,
   stats,
   onDrill,
 }: {
-  title: string
   direction: Direction
   words: Word[]
   stats: Map<string, WordStat>
@@ -31,7 +30,7 @@ function PileSection({
   return (
     <section className="mt-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-[20px] font-semibold">{title}</h2>
+        <h2 className="text-[20px] font-semibold">{DIRECTION_TITLES[direction]}</h2>
         <PrimaryButton
           className="w-auto px-4 py-1.5 text-[14px]"
           onClick={() => onDrill(direction)}
@@ -64,6 +63,8 @@ function PileSection({
   )
 }
 
+const REVIEW_DIRECTIONS: Direction[] = ['en_nl', 'nl_en', 'nl_past', 'nl_participle']
+
 export function ReviewScreen() {
   const { words, stats } = useApp()
   const navigate = useNavigate()
@@ -71,20 +72,15 @@ export function ReviewScreen() {
   return (
     <>
       <Screen title="Review pile">
-        <PileSection
-          title="English → Dutch"
-          direction="en_nl"
-          words={words}
-          stats={stats}
-          onDrill={(d) => navigate(`/quiz/${d}?pool=review`)}
-        />
-        <PileSection
-          title="Dutch → English"
-          direction="nl_en"
-          words={words}
-          stats={stats}
-          onDrill={(d) => navigate(`/quiz/${d}?pool=review`)}
-        />
+        {REVIEW_DIRECTIONS.map((d) => (
+          <PileSection
+            key={d}
+            direction={d}
+            words={words}
+            stats={stats}
+            onDrill={(drill) => navigate(`/quiz/${drill}?pool=review`)}
+          />
+        ))}
       </Screen>
       <TabBar />
     </>

@@ -1,6 +1,29 @@
 import type { CheckResult, Direction, Word } from './types'
 
 /**
+ * The answer side for a direction: accepted forms (canonical first) and the
+ * canonical string shown in feedback. Exhaustive on purpose — adding a
+ * direction must fail here until its answer side is defined.
+ */
+function targetForms(word: Word, direction: Direction): { forms: string[]; canonical: string } {
+  switch (direction) {
+    case 'nl_en':
+      return { forms: [word.english, ...word.english_alts], canonical: word.english }
+    case 'nl_past':
+      return { forms: word.dutch_past_forms, canonical: word.dutch_past_forms[0] ?? '' }
+    case 'nl_participle':
+      return { forms: word.dutch_participle_forms, canonical: word.dutch_participle_forms[0] ?? '' }
+    case 'en_nl':
+      return { forms: [word.dutch, ...word.dutch_alts], canonical: word.dutch }
+  }
+}
+
+/** The canonical answer shown in feedback for a direction. */
+export function canonicalAnswer(word: Word, direction: Direction): string {
+  return targetForms(word, direction).canonical
+}
+
+/**
  * Normalize a typed answer for comparison:
  * trim → strip edge punctuation → lowercase → accent-fold (é→e) → collapse spaces.
  */
@@ -30,9 +53,8 @@ function stripArticle(normalized: string): string | null {
  * (so "de boom" ↔ "boom" match regardless of which form is canonical).
  */
 export function acceptedAnswers(word: Word, direction: Direction): Set<string> {
-  const raw = direction === 'nl_en' ? [word.english, ...word.english_alts] : [word.dutch, ...word.dutch_alts]
   const accepted = new Set<string>()
-  for (const candidate of raw) {
+  for (const candidate of targetForms(word, direction).forms) {
     const normalized = normalizeAnswer(candidate)
     if (!normalized) continue
     accepted.add(normalized)
@@ -48,7 +70,7 @@ export function checkAnswer(
   word: Word,
   direction: Direction,
 ): CheckResult {
-  const canonical = direction === 'nl_en' ? word.english : word.dutch
+  const canonical = canonicalAnswer(word, direction)
   const normalizedTyped = normalizeAnswer(typed)
   const accepted = acceptedAnswers(word, direction)
   const strippedTyped = stripArticle(normalizedTyped)

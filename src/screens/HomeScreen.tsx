@@ -4,7 +4,31 @@ import { useApp } from '../context/AppContext'
 import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
 import { isInReviewPile } from '../lib/scheduler'
+import { wordsForDirection } from '../lib/directions'
 import { statsKey, type Direction } from '../lib/types'
+
+const MODES: { direction: Direction; title: string; subtitle: string }[] = [
+  {
+    direction: 'nl_en',
+    title: 'Dutch → English',
+    subtitle: 'See a Dutch word, type its meaning',
+  },
+  {
+    direction: 'en_nl',
+    title: 'English → Dutch',
+    subtitle: 'See the meaning, type the Dutch word',
+  },
+  {
+    direction: 'nl_past',
+    title: 'Past tense',
+    subtitle: 'See a Dutch verb, type its past form',
+  },
+  {
+    direction: 'nl_participle',
+    title: 'Past participle',
+    subtitle: 'See a Dutch verb, type its participle',
+  },
+]
 
 function ModeCard({
   title,
@@ -46,16 +70,14 @@ export function HomeScreen() {
   const counts = useMemo(() => {
     const now = Date.now()
     const countFor = (direction: Direction) =>
-      words.filter((w) => {
+      wordsForDirection(words, direction).filter((w) => {
         const s = stats.get(statsKey(w.id, direction))
         return !s || new Date(s.due_at).getTime() <= now
       }).length
-    const pile = words.filter((w) => {
-      const enNl = stats.get(statsKey(w.id, 'en_nl'))
-      const nlEn = stats.get(statsKey(w.id, 'nl_en'))
-      return isInReviewPile(enNl) || isInReviewPile(nlEn)
-    }).length
-    return { nl_en: countFor('nl_en'), en_nl: countFor('en_nl'), pile }
+    const pile = words.filter((w) =>
+      MODES.some((m) => isInReviewPile(stats.get(statsKey(w.id, m.direction)))),
+    ).length
+    return { ...Object.fromEntries(MODES.map((m) => [m.direction, countFor(m.direction)])), pile } as Record<string, number>
   }, [words, stats])
 
   return (
@@ -76,18 +98,15 @@ export function HomeScreen() {
           <p className="mt-10 text-center text-iosgray">Loading your words…</p>
         ) : (
           <div className="mt-4 space-y-4">
-            <ModeCard
-              title="Dutch → English"
-              subtitle="See a Dutch word, type its meaning"
-              due={counts.nl_en}
-              onClick={() => navigate('/quiz/nl_en')}
-            />
-            <ModeCard
-              title="English → Dutch"
-              subtitle="See the meaning, type the Dutch word"
-              due={counts.en_nl}
-              onClick={() => navigate('/quiz/en_nl')}
-            />
+            {MODES.map((m) => (
+              <ModeCard
+                key={m.direction}
+                title={m.title}
+                subtitle={m.subtitle}
+                due={counts[m.direction] ?? 0}
+                onClick={() => navigate(`/quiz/${m.direction}`)}
+              />
+            ))}
             <button
               onClick={() => navigate('/review')}
               className="pressable w-full rounded-3xl bg-ioscard p-5 text-left shadow-sm ring-1 ring-black/5"

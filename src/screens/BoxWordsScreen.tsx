@@ -3,12 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { TabBar } from '../components/TabBar'
 import { MAX_BOX, boxIntervalLabel } from '../lib/scheduler'
+import { DIRECTION_TITLES } from '../lib/directions'
 import { statsKey, type Direction } from '../lib/types'
-
-const DIRECTION_TITLES: Record<Direction, string> = {
-  nl_en: 'Dutch → English',
-  en_nl: 'English → Dutch',
-}
 
 /**
  * Words living in a single box level for one direction, Dutch and English
@@ -20,7 +16,8 @@ export function BoxWordsScreen() {
   const { words, stats } = useApp()
 
   const valid =
-    (direction === 'nl_en' || direction === 'en_nl') &&
+    !!direction &&
+    direction in DIRECTION_TITLES &&
     Number.isInteger(Number(box)) &&
     Number(box) >= 0 &&
     Number(box) <= MAX_BOX

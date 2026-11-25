@@ -4,20 +4,22 @@ import { useApp } from '../context/AppContext'
 import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
 import { MAX_BOX } from '../lib/scheduler'
+import { DIRECTION_TITLES, wordsForDirection } from '../lib/directions'
 import { statsKey, type Direction } from '../lib/types'
 
-function DirectionStats({ title, direction }: { title: string; direction: Direction }) {
+function DirectionStats({ direction }: { direction: Direction }) {
   const { words, stats } = useApp()
   const navigate = useNavigate()
 
   const s = useMemo(() => {
     const now = Date.now()
+    const pool = wordsForDirection(words, direction)
     const boxes = new Array(MAX_BOX + 1).fill(0)
     let seen = 0
     let correct = 0
     let wrong = 0
     let dueNow = 0
-    for (const w of words) {
+    for (const w of pool) {
       const stat = stats.get(statsKey(w.id, direction))
       if (!stat) continue
       seen += 1
@@ -30,7 +32,7 @@ function DirectionStats({ title, direction }: { title: string; direction: Direct
     return {
       boxes,
       seen,
-      total: words.length,
+      total: pool.length,
       dueNow,
       accuracy: attempts > 0 ? Math.round((correct / attempts) * 100) : null,
     }
@@ -40,7 +42,7 @@ function DirectionStats({ title, direction }: { title: string; direction: Direct
 
   return (
     <section className="mt-5 rounded-3xl bg-ioscard p-5 shadow-sm ring-1 ring-black/5">
-      <h2 className="text-[20px] font-semibold">{title}</h2>
+      <h2 className="text-[20px] font-semibold">{DIRECTION_TITLES[direction]}</h2>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         <div>
           <div className="text-[22px] font-bold">
@@ -84,12 +86,15 @@ function DirectionStats({ title, direction }: { title: string; direction: Direct
   )
 }
 
+const STAT_DIRECTIONS: Direction[] = ['en_nl', 'nl_en', 'nl_past', 'nl_participle']
+
 export function StatsScreen() {
   return (
     <>
       <Screen title="Stats">
-        <DirectionStats title="English → Dutch" direction="en_nl" />
-        <DirectionStats title="Dutch → English" direction="nl_en" />
+        {STAT_DIRECTIONS.map((d) => (
+          <DirectionStats key={d} direction={d} />
+        ))}
       </Screen>
       <TabBar />
     </>
