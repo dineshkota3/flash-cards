@@ -1,14 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { insforge } from '../lib/insforge'
+import { api } from '../lib/api'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { Spinner } from '../components/Spinner'
 
 /**
  * Login screen. Sign-in is the primary flow; the sign-up toggle appears only
- * while the backend allows signup (mirrored in the public app_config table —
- * the backend rejects signups regardless once disable_signup is set).
+ * while the backend allows signup (mirrored in the app_config table — the
+ * backend rejects signups regardless once signup_enabled is unset). Signup is
+ * gated by the two-person allowlist; no email verification is involved.
  */
 export function LoginScreen() {
   const { user, reloadUser } = useApp()
@@ -18,8 +19,6 @@ export function LoginScreen() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [otp, setOtp] = useState('')
-  const [awaitingVerification, setAwaitingVerification] = useState(false)
   const [signupEnabled, setSignupEnabled] = useState(false)
 
   // Hidden by default (safe state while the flag loads); the toggle shows only
@@ -27,11 +26,7 @@ export function LoginScreen() {
   useEffect(() => {
     let cancelled = false
     void (async () => {
-      const { data } = await insforge.database
-        .from('app_config')
-        .select('value')
-        .eq('key', 'signup_enabled')
-        .maybeSingle()
+      const { data } = await api.getConfig('signup_enabled')
       if (!cancelled && data?.value === 'true') setSignupEnabled(true)
     })()
     return () => {
@@ -46,32 +41,18 @@ export function LoginScreen() {
     setError(null)
     setNotice(null)
     try {
-      if (awaitingVerification) {
-        // Defensive branch: only reachable if the backend enforces email
-        // verification despite our config (checked at setup time).
-        const { error: verifyError } = await insforge.auth.verifyEmail({ email, otp })
-        if (verifyError) throw verifyError
-        await reloadUser()
-        return
-      }
       if (mode === 'signin') {
-        const { error: signInError } = await insforge.auth.signInWithPassword({
-          email,
-          password,
-        })
+        const { error: signInError } = await api.signInWithPassword(email, password)
         if (signInError) throw signInError
         await reloadUser()
       } else {
-        const { data, error: signUpError } = await insforge.auth.signUp({
-          email,
-          password,
-        })
+        const { data, error: signUpError } = await api.signUp(email, password)
         if (signUpError) throw signUpError
-        if (data?.requireEmailVerification) {
-          setAwaitingVerification(true)
-          setNotice('Check your inbox and enter the verification code.')
-        } else if (data?.accessToken) {
+        if (data?.user) {
           await reloadUser()
+        } else {
+          setNotice('Account created. You can sign in now.')
+          setMode('signin')
         }
       }
     } catch (err) {
@@ -118,19 +99,6 @@ export function LoginScreen() {
           minLength={8}
           className="w-full rounded-2xl border-0 bg-white px-4 py-3.5 text-[17px] outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-iosblue"
         />
-        {awaitingVerification && (
-          <input
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="6-digit code"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            required
-            className="w-full rounded-2xl border-0 bg-white px-4 py-3.5 text-[17px] outline-none ring-1 ring-black/5 focus:ring-2 focus:ring-iosblue"
-          />
-        )}
-
         {error && (
           <p className="rounded-xl bg-iosred/10 px-4 py-2.5 text-[15px] text-iosred">{error}</p>
         )}
@@ -143,8 +111,6 @@ export function LoginScreen() {
             <span className="inline-flex items-center justify-center gap-2">
               <Spinner className="h-5 w-5 border-2" /> Please wait…
             </span>
-          ) : awaitingVerification ? (
-            'Verify & continue'
           ) : mode === 'signin' ? (
             'Sign in'
           ) : (
@@ -153,7 +119,7 @@ export function LoginScreen() {
         </PrimaryButton>
       </form>
 
-      {!awaitingVerification && signupEnabled && (
+      {signupEnabled && (
         <button
           type="button"
           onClick={() => {

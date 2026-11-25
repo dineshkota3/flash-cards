@@ -1,8 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_INSFORGE_URL: string
-  readonly VITE_INSFORGE_ANON_KEY: string
+  // Same-origin API on Cloudflare — no build-time env vars needed.
 }
 
 interface ImportMeta {

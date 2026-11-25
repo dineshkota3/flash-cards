@@ -13,12 +13,12 @@
     "import-vocab": "node scripts/import-vocab.mjs"
   },
   "dependencies": {
-    "@insforge/sdk": "latest",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261125.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",

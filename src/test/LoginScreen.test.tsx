@@ -9,20 +9,12 @@ vi.mock('../context/AppContext', () => ({
   useApp: vi.fn(),
 }))
 
-// Chainable query-builder mock for insforge.database.from('app_config')
+// api.getConfig('signup_enabled') mock
 const dbState = vi.hoisted(() => ({ signupValue: null as string | null }))
-vi.mock('../lib/insforge', () => ({
-  insforge: {
-    database: {
-      from: () => {
-        const chain = {
-          select: () => chain,
-          eq: () => chain,
-          maybeSingle: () => Promise.resolve({ data: dbState.signupValue === null ? null : { value: dbState.signupValue } }),
-        }
-        return chain
-      },
-    },
+vi.mock('../lib/api', () => ({
+  api: {
+    getConfig: () =>
+      Promise.resolve({ data: dbState.signupValue === null ? null : { value: dbState.signupValue }, error: null }),
   },
 }))
 

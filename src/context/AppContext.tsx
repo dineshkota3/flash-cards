@@ -10,7 +10,7 @@ import {
 } from 'react'
 import type { Direction, StatsKey, Word, WordStat } from '../lib/types'
 import { statsKey } from '../lib/types'
-import { insforge } from '../lib/insforge'
+import { api } from '../lib/api'
 import { nextProgress, BOX_INTERVALS_MS } from '../lib/scheduler'
 import {
   clearPendingAttempts,
@@ -75,7 +75,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
     async function hydrate() {
-      const { data, error } = await insforge.auth.getCurrentUser()
+      const { data, error } = await api.getCurrentUser()
       if (cancelled) return
       const u = error ? null : (data?.user ?? null)
       setUser(u ? { id: u.id, email: u.email } : null)
@@ -88,11 +88,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshStats = useCallback(async () => {
-    const { data, error } = await insforge.database
-      .from('word_stats')
-      .select(
-        'word_id, direction, box, correct_count, wrong_count, streak, last_result, last_seen_at, due_at',
-      )
+    const { data, error } = await api.getStats()
     if (error) return
     const next = new Map<StatsKey, WordStat>()
     for (const row of (data ?? []) as WordStat[]) {
@@ -103,7 +99,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Re-run the session hydration after an in-page sign-in / sign-up.
   const reloadUser = useCallback(async () => {
-    const { data, error } = await insforge.auth.getCurrentUser()
+    const { data, error } = await api.getCurrentUser()
     const u = error ? null : (data?.user ?? null)
     setUser(u ? { id: u.id, email: u.email } : null)
     setLoading(false)
@@ -119,20 +115,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const uid = user.id
     setDataLoading(true)
     async function bootstrap() {
-      const cached = loadWordsCache('static-v2')
+      const cached = loadWordsCache('static-v3')
       if (cached) {
         setWords(cached)
       }
       if (!cached) {
-        const { data, error } = await insforge.database
-          .from('words')
-          .select(
-        'id, english, dutch, category, english_alts, dutch_alts, dutch_past_forms, dutch_participle_forms',
-      )
+        const { data, error } = await api.getWords()
         if (!error) {
           const fetched = (data ?? []) as Word[]
           setWords(fetched)
-          saveWordsCache('static-v2', fetched)
+          saveWordsCache('static-v3', fetched)
         }
       }
       await refreshStats()
@@ -142,13 +134,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const replayable = [...pending]
         const results: WordStat[] = []
         for (const attempt of replayable) {
-          const { data: row } = await insforge.database.rpc('record_attempt', {
-            p_word_id: attempt.word_id,
-            p_direction: attempt.direction,
-            p_is_correct: attempt.is_correct,
-            p_typed_answer: attempt.typed_answer,
-          })
-          if (row) results.push(row as WordStat)
+          const { data: row } = await api.recordAttempt(
+            attempt.word_id,
+            attempt.direction as Direction, // runtime-validated server-side
+            attempt.is_correct,
+            attempt.typed_answer,
+          )
+          if (row) results.push(row)
         }
         clearPendingAttempts(uid, results)
         if (results.length > 0) {
@@ -177,12 +169,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })
       void (async () => {
         for (let attempt = 0; attempt < 3; attempt++) {
-          const { data, error } = await insforge.database.rpc('record_attempt', {
-            p_word_id: wordId,
-            p_direction: direction,
-            p_is_correct: isCorrect,
-            p_typed_answer: typed,
-          })
+          const { data, error } = await api.recordAttempt(wordId, direction, isCorrect, typed)
           if (!error) {
             const row = data as WordStat | null
             if (row) {
@@ -211,7 +198,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 
   const signOut = useCallback(async () => {
-    await insforge.auth.signOut()
+    await api.signOut()
     bootstrappedFor.current = null
     setUser(null)
     setStats(new Map())

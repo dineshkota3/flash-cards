@@ -1,0 +1,9 @@
+name = "dutch-flashcards"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "flashcards"
+database_id = "PLACEHOLDER_FROM_wrangler_d1_create"
+migrations_dir = "d1/migrations"

@@ -24,3 +24,7 @@ data/
 .roo
 .trae
 .windsurf
+d1/export/
+d1/seed/
+.dev.vars
+.wrangler/
