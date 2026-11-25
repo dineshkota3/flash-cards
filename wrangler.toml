@@ -5,5 +5,5 @@ compatibility_date = "2026-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "flashcards"
-database_id = "PLACEHOLDER_FROM_wrangler_d1_create"
+database_id = "ead99ae4-d26a-44e0-a741-e7c0e8a3d193"
 migrations_dir = "d1/migrations"
