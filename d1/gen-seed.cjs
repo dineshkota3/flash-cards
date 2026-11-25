@@ -24,22 +24,29 @@ const insertRows = (table, columns, rows) => {
   return stmts.join('\n')
 }
 
-// -- pepper + session secret (kept in a gitignored file for `wrangler secret put`)
-const pepper = crypto.randomBytes(32).toString('base64url')
-const sessionSecret = crypto.randomBytes(32).toString('base64url')
-fs.writeFileSync(
-  path.join(EXPORT, 'deploy-secrets.txt'),
-  `PEPPER=${pepper}\nSESSION_SECRET=${sessionSecret}\n`,
-)
+// -- pepper + session secret (kept in a gitignored file for `wrangler secret put`).
+//    Reuses an existing deploy-secrets.txt so re-running keeps hashes verifiable.
+const secretsFile = path.join(EXPORT, 'deploy-secrets.txt')
+let pepper = crypto.randomBytes(32).toString('base64url')
+let sessionSecret = crypto.randomBytes(32).toString('base64url')
+if (fs.existsSync(secretsFile)) {
+  const text = fs.readFileSync(secretsFile, 'utf8')
+  const existingPepper = text.match(/PEPPER=(.*)/)?.[1]?.trim()
+  const existingSecret = text.match(/SESSION_SECRET=(.*)/)?.[1]?.trim()
+  if (existingPepper) pepper = existingPepper
+  if (existingSecret) sessionSecret = existingSecret
+}
+fs.writeFileSync(secretsFile, `PEPPER=${pepper}\nSESSION_SECRET=${sessionSecret}\n`)
 
 // -- users: reuse InsForge UUIDs so word_stats/attempts import with no remapping.
-//    Temp passwords (shown once in the output); owner resets later via SQL.
+//    Password comes from SEED_PASSWORD env (never committed); default is random.
 const authUsers = load('auth-users').filter((u) => u.email !== 'cookie-probe@example.com')
 const members = load('app_members')
 const memberIds = new Set(members.map((m) => m.user_id))
+const seedPassword = process.env.SEED_PASSWORD ?? crypto.randomBytes(9).toString('base64url')
 const tempPasswords = []
 const userRows = authUsers.map((u) => {
-  const temp = crypto.randomBytes(9).toString('base64url')
+  const temp = seedPassword
   tempPasswords.push(`${u.email}: ${temp}`)
   const salt = crypto.randomBytes(16)
   const hash = crypto.pbkdf2Sync(pepper + temp, salt, ITERATIONS, 32, 'sha256')
