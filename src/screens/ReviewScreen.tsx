@@ -5,35 +5,43 @@ import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { isInReviewPile } from '../lib/scheduler'
-import { DIRECTION_TITLES } from '../lib/directions'
+import { DIRECTION_TITLES, wordsForDirection, type VerbGroup } from '../lib/directions'
 import { statsKey, type Direction, type Word, type WordStat } from '../lib/types'
 
 function PileSection({
   direction,
+  group,
+  title,
   words,
   stats,
   onDrill,
 }: {
   direction: Direction
+  group?: VerbGroup
+  title: string
   words: Word[]
   stats: Map<string, WordStat>
-  onDrill: (direction: Direction) => void
+  onDrill: (direction: Direction, group?: VerbGroup) => void
 }) {
+  const pool = useMemo(
+    () => wordsForDirection(words, direction, group),
+    [words, direction, group],
+  )
   const pile = useMemo(
     () =>
-      words
+      pool
         .map((word) => ({ word, stat: stats.get(statsKey(word.id, direction)) ?? null }))
         .filter((entry) => isInReviewPile(entry.stat)),
-    [words, stats, direction],
+    [pool, stats, direction],
   )
 
   return (
     <section className="mt-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-[20px] font-semibold">{DIRECTION_TITLES[direction]}</h2>
+        <h2 className="text-[20px] font-semibold">{title}</h2>
         <PrimaryButton
           className="w-auto px-4 py-1.5 text-[14px]"
-          onClick={() => onDrill(direction)}
+          onClick={() => onDrill(direction, group)}
           disabled={pile.length === 0}
         >
           Drill {pile.length > 0 ? `(${pile.length})` : ''}
@@ -63,7 +71,15 @@ function PileSection({
   )
 }
 
-const REVIEW_DIRECTIONS: Direction[] = ['en_nl', 'nl_en', 'nl_past', 'nl_participle']
+// Past-mode piles split by verb group so a drill never mixes pools.
+const REVIEW_SECTIONS: { direction: Direction; group?: VerbGroup; title: string }[] = [
+  { direction: 'en_nl', title: DIRECTION_TITLES.en_nl },
+  { direction: 'nl_en', title: DIRECTION_TITLES.nl_en },
+  { direction: 'nl_past', title: 'Past tense (normal verbs)' },
+  { direction: 'nl_past', group: 'separable', title: 'Past tense (separable verbs)' },
+  { direction: 'nl_participle', title: 'Past participle (normal verbs)' },
+  { direction: 'nl_participle', group: 'separable', title: 'Past participle (separable verbs)' },
+]
 
 export function ReviewScreen() {
   const { words, stats } = useApp()
@@ -72,13 +88,21 @@ export function ReviewScreen() {
   return (
     <>
       <Screen title="Review pile">
-        {REVIEW_DIRECTIONS.map((d) => (
+        {REVIEW_SECTIONS.map(({ direction, group, title }) => (
           <PileSection
-            key={d}
-            direction={d}
+            key={group ? `${direction}:${group}` : direction}
+            direction={direction}
+            group={group}
+            title={title}
             words={words}
             stats={stats}
-            onDrill={(drill) => navigate(`/quiz/${drill}?pool=review`)}
+            onDrill={(drill, drillGroup) =>
+              navigate(
+                drillGroup
+                  ? `/quiz/${drill}?pool=review&group=${drillGroup}`
+                  : `/quiz/${drill}?pool=review`,
+              )
+            }
           />
         ))}
       </Screen>
