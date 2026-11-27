@@ -132,3 +132,77 @@ describe('QuizScreen past-tense modes', () => {
     expect(screen.getByText('gewerkt')).toBeInTheDocument()
   })
 })
+
+describe('QuizScreen verb groups and english meaning', () => {
+  const normalVerb: Word = {
+    ...word,
+    id: 11,
+    english: 'to work',
+    dutch: 'werken',
+    category: 'easy',
+    dutch_alts: [],
+    dutch_past_forms: ['werkte', 'werkten'],
+    dutch_participle_forms: ['gewerkt'],
+  }
+  const separableVerb: Word = {
+    ...word,
+    id: 12,
+    english: 'to take along',
+    dutch: 'meenemen',
+    category: 'separable_verb',
+    dutch_alts: [],
+    dutch_past_forms: ['nam mee', 'namen mee'],
+    dutch_participle_forms: ['meegenomen'],
+  }
+
+  function renderGrouped(direction: 'nl_past' | 'nl_participle', group: string, pool: Word[]) {
+    mockedUseApp.mockReturnValue({
+      words: pool,
+      stats: new Map(),
+      dataLoading: false,
+      recordAnswer,
+    } as unknown as AppContextValue)
+    return render(
+      <MemoryRouter initialEntries={[`/quiz/${direction}?group=${group}`]}>
+        <Routes>
+          <Route path="/quiz/:direction" element={<QuizScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('group=separable only prompts separable verbs', () => {
+    recordAnswer.mockClear()
+    renderGrouped('nl_past', 'separable', [normalVerb, separableVerb])
+    expect(screen.getByText('meenemen')).toBeInTheDocument()
+    expect(screen.queryByText('werken')).not.toBeInTheDocument()
+    expect(screen.getByText('past tense · separable')).toBeInTheDocument()
+  })
+
+  it('group=normal only prompts normal verbs', () => {
+    recordAnswer.mockClear()
+    renderGrouped('nl_past', 'normal', [normalVerb, separableVerb])
+    expect(screen.getByText('werken')).toBeInTheDocument()
+    expect(screen.queryByText('meenemen')).not.toBeInTheDocument()
+  })
+
+  it('shows the english meaning on correct and wrong feedback in past modes', async () => {
+    const user = userEvent.setup()
+    recordAnswer.mockClear()
+    renderGrouped('nl_past', 'normal', [normalVerb])
+    await user.type(screen.getByLabelText('Your answer'), 'werkte{Enter}')
+    expect(recordAnswer).toHaveBeenCalledWith(11, 'nl_past', true, 'werkte')
+    expect(screen.getByText('Correct!')).toBeInTheDocument()
+    expect(screen.getByText('to work')).toBeInTheDocument()
+  })
+
+  it('wrong answers show the canonical form plus english meaning', async () => {
+    const user = userEvent.setup()
+    recordAnswer.mockClear()
+    renderGrouped('nl_participle', 'normal', [normalVerb])
+    await user.type(screen.getByLabelText('Your answer'), 'verkeerd{Enter}')
+    expect(recordAnswer).toHaveBeenCalledWith(11, 'nl_participle', false, 'verkeerd')
+    expect(screen.getByText('gewerkt')).toBeInTheDocument()
+    expect(screen.getByText('· to work')).toBeInTheDocument()
+  })
+})

@@ -4,10 +4,10 @@ import { useApp } from '../context/AppContext'
 import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
 import { isInReviewPile } from '../lib/scheduler'
-import { wordsForDirection } from '../lib/directions'
+import { wordsForDirection, type VerbGroup } from '../lib/directions'
 import { statsKey, type Direction } from '../lib/types'
 
-const MODES: { direction: Direction; title: string; subtitle: string }[] = [
+const MODES: { direction: Direction; group?: VerbGroup; title: string; subtitle: string }[] = [
   {
     direction: 'nl_en',
     title: 'Dutch → English',
@@ -21,12 +21,24 @@ const MODES: { direction: Direction; title: string; subtitle: string }[] = [
   {
     direction: 'nl_past',
     title: 'Past tense',
-    subtitle: 'See a Dutch verb, type its past form',
+    subtitle: 'Normal verbs: werken → werkte',
+  },
+  {
+    direction: 'nl_past',
+    group: 'separable',
+    title: 'Past tense · separable',
+    subtitle: 'Separable verbs: meenemen → nam mee',
   },
   {
     direction: 'nl_participle',
     title: 'Past participle',
-    subtitle: 'See a Dutch verb, type its participle',
+    subtitle: 'Normal verbs: werken → gewerkt',
+  },
+  {
+    direction: 'nl_participle',
+    group: 'separable',
+    title: 'Past participle · separable',
+    subtitle: 'Separable verbs: meenemen → meegenomen',
   },
 ]
 
@@ -69,15 +81,19 @@ export function HomeScreen() {
 
   const counts = useMemo(() => {
     const now = Date.now()
-    const countFor = (direction: Direction) =>
-      wordsForDirection(words, direction).filter((w) => {
+    const countFor = (direction: Direction, group?: VerbGroup) =>
+      wordsForDirection(words, direction, group).filter((w) => {
         const s = stats.get(statsKey(w.id, direction))
         return !s || new Date(s.due_at).getTime() <= now
       }).length
     const pile = words.filter((w) =>
       MODES.some((m) => isInReviewPile(stats.get(statsKey(w.id, m.direction)))),
     ).length
-    return { ...Object.fromEntries(MODES.map((m) => [m.direction, countFor(m.direction)])), pile } as Record<string, number>
+    const keys = MODES.map((m) => (m.group ? `${m.direction}:${m.group}` : m.direction))
+    return {
+      ...Object.fromEntries(MODES.map((m, i) => [keys[i], countFor(m.direction, m.group)])),
+      pile,
+    } as Record<string, number>
   }, [words, stats])
 
   return (
@@ -100,11 +116,13 @@ export function HomeScreen() {
           <div className="mt-4 space-y-4">
             {MODES.map((m) => (
               <ModeCard
-                key={m.direction}
+                key={m.group ? `${m.direction}:${m.group}` : m.direction}
                 title={m.title}
                 subtitle={m.subtitle}
-                due={counts[m.direction] ?? 0}
-                onClick={() => navigate(`/quiz/${m.direction}`)}
+                due={counts[m.group ? `${m.direction}:${m.group}` : m.direction] ?? 0}
+                onClick={() =>
+                  navigate(m.group ? `/quiz/${m.direction}?group=${m.group}` : `/quiz/${m.direction}`)
+                }
               />
             ))}
             <button

@@ -6,7 +6,7 @@ import { SpeakButton } from '../components/SpeakButton'
 import { Spinner } from '../components/Spinner'
 import { buildSessionQueue, type Card } from '../lib/scheduler'
 import { canonicalAnswer, checkAnswer } from '../lib/answerCheck'
-import { chipFor, DIRECTION_TITLES, hintFor, promptFor, speakText, wordsForDirection } from '../lib/directions'
+import { chipFor, DIRECTION_TITLES, hintFor, isPastDirection, parseVerbGroup, promptFor, speakText, wordsForDirection } from '../lib/directions'
 import type { Direction } from '../lib/types'
 
 const SESSION_SIZE = 15
@@ -23,6 +23,7 @@ export function QuizScreen() {
   const { direction } = useParams<{ direction: Direction }>()
   const [searchParams] = useSearchParams()
   const pool = searchParams.get('pool') === 'review' ? 'review' : 'all'
+  const group = parseVerbGroup(searchParams.get('group'))
   const navigate = useNavigate()
   const { words, stats, dataLoading, recordAnswer } = useApp()
 
@@ -43,8 +44,8 @@ export function QuizScreen() {
     if (startedRef.current || dataLoading || words.length === 0) return
     startedRef.current = true
     if (!direction || !(direction in DIRECTION_TITLES)) return
-    setQueue(buildSessionQueue(wordsForDirection(words, direction), stats, direction, { size: SESSION_SIZE, pool }))
-  }, [dataLoading, words, stats, direction, pool])
+    setQueue(buildSessionQueue(wordsForDirection(words, direction, group), stats, direction, { size: SESSION_SIZE, pool }))
+  }, [dataLoading, words, stats, direction, pool, group])
 
   const card = queue[index]
   const prompt = useMemo(() => {
@@ -122,7 +123,7 @@ export function QuizScreen() {
         <div className="mt-8 space-y-3">
           <PrimaryButton
             onClick={() => {
-              const next = buildSessionQueue(wordsForDirection(words, direction), stats, direction, {
+              const next = buildSessionQueue(wordsForDirection(words, direction, group), stats, direction, {
                 size: 10,
                 pool,
               })
@@ -242,6 +243,7 @@ export function QuizScreen() {
             {direction && chipFor(direction) && (
               <div className="inline-block rounded-full bg-nl/15 px-3 py-1 text-[13px] font-medium text-nl">
                 {chipFor(direction)}
+                {group === 'separable' ? ' · separable' : ''}
               </div>
             )}
           </div>
@@ -256,11 +258,17 @@ export function QuizScreen() {
         {phase === 'correct' && (
           <p className="rounded-xl bg-iosgreen/15 px-4 py-2.5 text-center text-[15px] font-medium text-iosgreen">
             Correct!
+            {direction && isPastDirection(direction) && card && (
+              <span className="ml-1 font-normal text-iosgreen/80">{card.word.english}</span>
+            )}
           </p>
         )}
         {phase === 'wrong' && (
           <p className="rounded-xl bg-iosred/10 px-4 py-2.5 text-center text-[15px]">
             <span className="font-semibold text-iosred">{canonical}</span>
+            {direction && isPastDirection(direction) && card && (
+              <span className="text-iosgray"> · {card.word.english}</span>
+            )}
             <span className="text-iosgray"> — tap Continue</span>
           </p>
         )}

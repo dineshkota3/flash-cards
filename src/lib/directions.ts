@@ -11,6 +11,13 @@ export function isPastDirection(d: Direction): boolean {
   return d === 'nl_past' || d === 'nl_participle'
 }
 
+/** Sub-pool for the past modes: normal verbs vs separable verbs. */
+export type VerbGroup = 'normal' | 'separable'
+
+export function parseVerbGroup(value: string | null | undefined): VerbGroup | undefined {
+  return value === 'normal' || value === 'separable' ? value : undefined
+}
+
 /** What is shown as the prompt for a card in this direction. */
 export function promptFor(word: Word, direction: Direction): string {
   switch (direction) {
@@ -57,16 +64,23 @@ export function speakText(word: Word, direction: Direction): string {
 
 /**
  * Words eligible for a direction's sessions/counts/totals: the Dutch-form
- * modes serve only verbs whose forms were curated.
+ * modes serve only verbs whose forms were curated, optionally restricted to
+ * normal verbs or separable verbs.
  */
-export function wordsForDirection(words: Word[], direction: Direction): Word[] {
+export function wordsForDirection(words: Word[], direction: Direction, group?: VerbGroup): Word[] {
+  let pool: Word[]
   switch (direction) {
     case 'nl_past':
-      return words.filter((w) => w.dutch_past_forms.length > 0)
+      pool = words.filter((w) => w.dutch_past_forms.length > 0)
+      break
     case 'nl_participle':
-      return words.filter((w) => w.dutch_participle_forms.length > 0)
+      pool = words.filter((w) => w.dutch_participle_forms.length > 0)
+      break
     case 'nl_en':
     case 'en_nl':
       return words
   }
+  if (group === 'separable') return pool.filter((w) => w.category === 'separable_verb')
+  if (group === 'normal') return pool.filter((w) => w.category !== 'separable_verb')
+  return pool
 }
