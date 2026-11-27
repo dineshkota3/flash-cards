@@ -20,6 +20,7 @@ const MODES: { direction: Direction; group?: VerbGroup; title: string; subtitle:
   },
   {
     direction: 'nl_past',
+    group: 'normal',
     title: 'Past tense',
     subtitle: 'Normal verbs: werken → werkte',
   },
@@ -31,6 +32,7 @@ const MODES: { direction: Direction; group?: VerbGroup; title: string; subtitle:
   },
   {
     direction: 'nl_participle',
+    group: 'normal',
     title: 'Past participle',
     subtitle: 'Normal verbs: werken → gewerkt',
   },

@@ -75,9 +75,9 @@ function PileSection({
 const REVIEW_SECTIONS: { direction: Direction; group?: VerbGroup; title: string }[] = [
   { direction: 'en_nl', title: DIRECTION_TITLES.en_nl },
   { direction: 'nl_en', title: DIRECTION_TITLES.nl_en },
-  { direction: 'nl_past', title: 'Past tense (normal verbs)' },
+  { direction: 'nl_past', group: 'normal', title: 'Past tense (normal verbs)' },
   { direction: 'nl_past', group: 'separable', title: 'Past tense (separable verbs)' },
-  { direction: 'nl_participle', title: 'Past participle (normal verbs)' },
+  { direction: 'nl_participle', group: 'normal', title: 'Past participle (normal verbs)' },
   { direction: 'nl_participle', group: 'separable', title: 'Past participle (separable verbs)' },
 ]
 
