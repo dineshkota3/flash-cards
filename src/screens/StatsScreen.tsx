@@ -4,16 +4,24 @@ import { useApp } from '../context/AppContext'
 import { Screen } from '../components/Screen'
 import { TabBar } from '../components/TabBar'
 import { MAX_BOX } from '../lib/scheduler'
-import { DIRECTION_TITLES, wordsForDirection } from '../lib/directions'
+import { wordsForDirection, type VerbGroup } from '../lib/directions'
 import { statsKey, type Direction } from '../lib/types'
 
-function DirectionStats({ direction }: { direction: Direction }) {
+function DirectionStats({
+  direction,
+  group,
+  title,
+}: {
+  direction: Direction
+  group?: VerbGroup
+  title: string
+}) {
   const { words, stats } = useApp()
   const navigate = useNavigate()
 
   const s = useMemo(() => {
     const now = Date.now()
-    const pool = wordsForDirection(words, direction)
+    const pool = wordsForDirection(words, direction, group)
     const boxes = new Array(MAX_BOX + 1).fill(0)
     let seen = 0
     let correct = 0
@@ -42,7 +50,7 @@ function DirectionStats({ direction }: { direction: Direction }) {
 
   return (
     <section className="mt-5 rounded-3xl bg-ioscard p-5 shadow-sm ring-1 ring-black/5">
-      <h2 className="text-[20px] font-semibold">{DIRECTION_TITLES[direction]}</h2>
+      <h2 className="text-[20px] font-semibold">{title}</h2>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         <div>
           <div className="text-[22px] font-bold">
@@ -66,7 +74,7 @@ function DirectionStats({ direction }: { direction: Direction }) {
             key={box}
             type="button"
             disabled={count === 0}
-            onClick={() => navigate(`/stats/${direction}/${box}`)}
+            onClick={() => navigate(`/stats/${direction}/${box}${group ? `?group=${group}` : ''}`)}
             aria-label={`Box ${box}: ${count} words — view words`}
             className="pressable flex flex-1 flex-col items-center gap-1 disabled:opacity-40"
           >
@@ -86,14 +94,22 @@ function DirectionStats({ direction }: { direction: Direction }) {
   )
 }
 
-const STAT_DIRECTIONS: Direction[] = ['en_nl', 'nl_en', 'nl_past', 'nl_participle']
+// Past-mode sections split by verb group, matching the practice modes.
+const STAT_SECTIONS: { direction: Direction; group?: VerbGroup; title: string }[] = [
+  { direction: 'en_nl', title: 'English → Dutch' },
+  { direction: 'nl_en', title: 'Dutch → English' },
+  { direction: 'nl_past', title: 'Past tense (normal verbs)' },
+  { direction: 'nl_past', group: 'separable', title: 'Past tense (separable verbs)' },
+  { direction: 'nl_participle', title: 'Past participle (normal verbs)' },
+  { direction: 'nl_participle', group: 'separable', title: 'Past participle (separable verbs)' },
+]
 
 export function StatsScreen() {
   return (
     <>
       <Screen title="Stats">
-        {STAT_DIRECTIONS.map((d) => (
-          <DirectionStats key={d} direction={d} />
+        {STAT_SECTIONS.map(({ direction, group, title }) => (
+          <DirectionStats key={group ? `${direction}:${group}` : direction} direction={direction} group={group} title={title} />
         ))}
       </Screen>
       <TabBar />

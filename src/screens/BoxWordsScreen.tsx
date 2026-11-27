@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { TabBar } from '../components/TabBar'
 import { MAX_BOX, boxIntervalLabel } from '../lib/scheduler'
-import { DIRECTION_TITLES } from '../lib/directions'
+import { DIRECTION_TITLES, parseVerbGroup, wordsForDirection } from '../lib/directions'
 import { statsKey, type Direction } from '../lib/types'
 
 /**
@@ -12,6 +12,8 @@ import { statsKey, type Direction } from '../lib/types'
  */
 export function BoxWordsScreen() {
   const { direction, box } = useParams<{ direction: Direction; box: string }>()
+  const [searchParams] = useSearchParams()
+  const group = parseVerbGroup(searchParams.get('group'))
   const navigate = useNavigate()
   const { words, stats } = useApp()
 
@@ -24,12 +26,12 @@ export function BoxWordsScreen() {
   const boxNum = Number(box)
 
   const entries = useMemo(() => {
-    if (!valid) return []
-    return words
+    if (!valid || !direction) return []
+    return wordsForDirection(words, direction, group)
       .map((word) => ({ word, stat: stats.get(statsKey(word.id, direction)) ?? null }))
       .filter((e) => e.stat?.box === boxNum)
       .sort((a, b) => a.word.dutch.localeCompare(b.word.dutch))
-  }, [valid, words, stats, direction, boxNum])
+  }, [valid, words, stats, direction, boxNum, group])
 
   if (!valid) {
     return (
